@@ -15,7 +15,7 @@ class Tokenicer:
     @classmethod
     def load(cls, tokenizer_or_path: Union[str, PreTrainedTokenizer], trust_remote: bool = False):
         if tokenizer_or_path is None:
-            raise ValueError("`tokenizer` cannot be None.")
+            raise ValueError("`tokenizer_or_path` cannot be None.")
         tokenicer = cls()
         tokenicer.trust_remote = trust_remote
         if isinstance(tokenizer_or_path, PreTrainedTokenizer):
