@@ -26,8 +26,13 @@ class Tokenicer:
             tokenicer.tokenizer = tokenizer
             config_path = retrieve_config_path(tokenizer)
         elif isinstance(tokenizer_or_path, str):
-            tokenicer.tokenizer = AutoTokenizer.from_pretrained(tokenizer_or_path, trust_remote_code=trust_remote)
-            config_path = tokenizer_or_path
+            tokenizer = AutoTokenizer.from_pretrained(tokenizer_or_path, trust_remote_code=trust_remote)
+            if isinstance(tokenizer, PreTrainedTokenizerBase):
+                tokenicer.tokenizer = tokenizer
+                config_path = tokenizer_or_path
+            else:
+                ValueError(
+                    f"Failed to initialize `tokenizer`. Please ensure that the `tokenizer_or_path` parameter is set correctly.")
         else:
             raise ValueError(
                 f"Unsupported type in tokenizer_or_path: {type(tokenizer_or_path)}. Expected str or PreTrainedTokenizerBase.")
