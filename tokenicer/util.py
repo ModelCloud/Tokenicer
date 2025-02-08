@@ -1,5 +1,5 @@
 from typing import Union, List, Optional
-
+from transformers import AutoConfig, PretrainedConfig
 
 def candidate_ids(token_list: List[Union[str, int]], vocab: dict) -> List[Optional[int]]:
     token_ids = []
@@ -27,3 +27,11 @@ def retrieve_config_path(obj) -> Optional[str]:
     if init_kwargs and "name_or_path" in init_kwargs:
         return init_kwargs["name_or_path"]
     return None
+
+
+def auto_config(path, trust_remote):
+    config = AutoConfig.from_pretrained(path, trust_remote_code=trust_remote)
+    model_config = None
+    if isinstance(config, PretrainedConfig):
+        model_config = config
+    return model_config

@@ -1,7 +1,7 @@
 import logging
 from typing import Union, List, Optional
-from transformers import AutoConfig, PreTrainedTokenizerBase, PreTrainedModel, AutoTokenizer
-from .util import candidate_ids, retrieve_config_path
+from transformers import PreTrainedTokenizerBase, PreTrainedModel, AutoTokenizer
+from .util import candidate_ids, retrieve_config_path, auto_config
 from .const import DEFAULT_PAD_TOKENS
 
 logger = logging.getLogger(__name__)
@@ -30,12 +30,16 @@ class Tokenicer:
             config_path = tokenizer_or_path
         else:
             raise ValueError(
-                f"Unsupported type in tokenizer_or_path: {type(tokenizer_or_path)}. Expected str or PreTrainedTokenizer.")
+                f"Unsupported type in tokenizer_or_path: {type(tokenizer_or_path)}. Expected str or PreTrainedTokenizerBase.")
 
-        if config_path is not None:
-            tokenicer.model_config = AutoConfig.from_pretrained(config_path, trust_remote_code=trust_remote)
-        else:
-            raise ValueError("Could not retrieve config from the provided tokenizer_or_path.")
+        tokenicer.model_config = auto_config(config_path, trust_remote)
+
+        if tokenicer.model_config is None:
+            logger.warning(
+                f"Cannot initialize `model_config` from the provided `tokenizer_or_path` parameter. "
+                f"If, when calling the `auto_assign_pad_token()` API, it is necessary to specify the `model_or_path` parameter.",
+            )
+
         return tokenicer
 
     def auto_assign_pad_token(
@@ -43,22 +47,27 @@ class Tokenicer:
         model_or_path: Optional[Union[str, PreTrainedModel]] = None,
         pad_tokens: Optional[List[Union[str, int]]] = None,
     ):
+        model_config = None
         if model_or_path is not None:
-            config = None
             if isinstance(model_or_path, str):
-                config = AutoConfig.from_pretrained(model_or_path, trust_remote_code=self.trust_remote)
+                model_config = auto_config(model_or_path, self.trust_remote)
             elif isinstance(model_or_path, PreTrainedModel):
-                config = getattr(model_or_path, "config", None)
+                model_config = getattr(model_or_path, "config", None)
             else:
                 raise ValueError(
                     f"Unsupported type in model_or_path: {type(model_or_path)}. Expected str or PreTrainedModel.")
 
-            if config is None:
-                raise ValueError("Could not retrieve config from the provided model_or_path.")
+            if model_config is None:
+                raise ValueError("Could not retrieve config from the provided `model_or_path`.")
+        else:
+            if self.model_config is not None:
+                model_config = self.model_config
             else:
-                self.model_config = config
+                raise ValueError(
+                    "Failed to initialize model config. Please ensure that the `Tokenicer.load(tokenizer_or_path)` parameter is set correctly."
+                    "or set `auto_assign_pad_token(model_or_path)` parameter")
 
-        pad_token_id = self.model_config.pad_token_id
+        pad_token_id = model_config.pad_token_id
 
         if pad_token_id is None:
             vocab = self.tokenizer.get_vocab()
@@ -74,14 +83,14 @@ class Tokenicer:
                     break
 
         if pad_token_id is None:
-            if isinstance(self.model_config.eos_token_id, list) and self.model_config.eos_token_id:
-                pad_token_id = self.model_config.eos_token_id[0]
+            if isinstance(model_config.eos_token_id, list) and model_config.eos_token_id:
+                pad_token_id = model_config.eos_token_id[0]
             else:
-                pad_token_id = self.model_config.eos_token_id
+                pad_token_id = model_config.eos_token_id
 
         if pad_token_id is None:
             raise ValueError(
-                "No valid pad token found. Please ensure you have set a valid `pad_token_id`."
+                "No valid pad token found. Please ensure you have set a valid `pad_tokens`."
             )
 
         self.tokenizer.pad_token_id = pad_token_id
