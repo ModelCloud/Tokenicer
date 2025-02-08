@@ -15,6 +15,10 @@ class TestAutoAssignPadToken(unittest.TestCase):
         ]
     )
     def test_auto_assign_pad_token(self, pad_tokens: List[Union[str, int]], assign_pad_token_result: int):
+        # from transformers import AutoTokenizer
+        # tokenizer = AutoTokenizer.from_pretrained(self.NATIVE_TOKENIZER_PATH)
+        # tokenicer = Tokenicer.load(tokenizer_or_path=tokenizer)
+
         tokenicer = Tokenicer.load(tokenizer_or_path=self.NATIVE_TOKENIZER_PATH)
         tokenicer.auto_assign_pad_token(pad_tokens=pad_tokens)
         self.assertEqual(
