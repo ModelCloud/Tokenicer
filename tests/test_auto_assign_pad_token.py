@@ -14,7 +14,7 @@ class TestAutoAssignPadToken(unittest.TestCase):
             (['<|reserved_special_token_0|>'], '<|reserved_special_token_0|>')
         ]
     )
-    def test_auto_assign_pad_token(self, pad_tokens: List[Union[str, int]], assign_pad_token_result: int):
+    def test_auto_assign_pad_token(self, pad_tokens: List[Union[str, int]], assign_pad_token_result: str):
         # from transformers import AutoTokenizer
         # tokenizer = AutoTokenizer.from_pretrained(self.NATIVE_TOKENIZER_PATH)
         # tokenicer = Tokenicer.load(tokenizer_or_path=tokenizer)
