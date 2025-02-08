@@ -6,7 +6,6 @@ from tokenicer import Tokenicer
 
 
 class TestAutoAssignPadToken(unittest.TestCase):
-    NATIVE_MODEL_PATH = "/monster/data/model/Llama-3.2-1B-Instruct"
     NATIVE_TOKENIZER_PATH = "/monster/data/model/Llama-3.2-1B-Instruct"
 
     @parameterized.expand(
@@ -17,7 +16,7 @@ class TestAutoAssignPadToken(unittest.TestCase):
     )
     def test_auto_assign_pad_token(self, pad_tokens: List[Union[str, int]], assign_pad_token_result: int):
         tokenicer = Tokenicer.load(tokenizer_or_path=self.NATIVE_TOKENIZER_PATH)
-        tokenicer.auto_assign_pad_token(model_or_path=self.NATIVE_MODEL_PATH, pad_tokens=pad_tokens)
+        tokenicer.auto_assign_pad_token(pad_tokens=pad_tokens)
         self.assertEqual(
             tokenicer.tokenizer.pad_token,
             assign_pad_token_result,
