@@ -23,5 +23,3 @@ class TestAutoAssignPadToken(unittest.TestCase):
             assign_pad_token_result,
             msg=f"Expected pad_token='{assign_pad_token_result}' but got '{tokenicer.tokenizer.pad_token}' for pad_tokens={pad_tokens}."
         )
-
-
