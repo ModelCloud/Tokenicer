@@ -8,6 +8,9 @@
     <a href="https://huggingface.co/modelcloud/"><img src="https://img.shields.io/badge/🤗%20Hugging%20Face-ModelCloud-%23ff8811.svg"></a>
 </p>
 
+## News
+* 02/10/2025 [0.0.1](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.1): 🤗 Initial release!
+
 ## Features:
 
 * Compatible with all `HF Transformers` compatible tokenizers
