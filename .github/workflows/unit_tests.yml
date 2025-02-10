@@ -39,7 +39,7 @@ jobs:
 
           echo "$json_array"
 
-          echo "test-files=$$json_array" >> "$GITHUB_OUTPUT"
+          echo "test-files=$json_array" >> "$GITHUB_OUTPUT"
 
   test:
     runs-on: [ self-hosted ]
