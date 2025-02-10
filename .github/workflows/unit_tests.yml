@@ -1,0 +1,38 @@
+name: Unit tests
+
+defaults:
+  run:
+    shell: bash -le {0}
+
+on:
+  push:
+  repository_dispatch:
+  workflow_dispatch:
+
+env:
+  CUDA_DEVICE_ORDER: PCI_BUS_ID
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest, macos-13, windows-latest ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.13
+          cache: 'pip'
+
+      - name: install requirements
+        run: pip install parameterized
+
+      - name: install
+        run: pip install .
+
+      - name: test
+        run: pytest tests/test_pad_token.py
