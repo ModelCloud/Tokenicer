@@ -33,6 +33,12 @@ jobs:
           twine check dist/*
           pip install dist/*
 
+      - name: Upload sdist to github artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whl
+          path: dist/*gz
+
       - name: Upload sdist to pypi
         if: succeed() && (github.event_name == 'release' || github.event.inputs.upload_pypi == 'true') && !cancelled()
         env:
