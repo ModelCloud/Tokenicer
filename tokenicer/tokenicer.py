@@ -62,9 +62,11 @@ class Tokenicer:
                 f"Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
+        tokenicer.auto_fix_pad_token()
+
         return tokenicer
 
-    def auto_assign_pad_token(
+    def auto_fix_pad_token(
         self,
         model_or_path: Optional[Union[str, PreTrainedModel]] = None,
         pad_tokens: Optional[List[Union[str, int]]] = None,

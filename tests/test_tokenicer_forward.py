@@ -24,7 +24,6 @@ class TestTokenicer(unittest.TestCase):
     def setUpClass(self):
         self.pretrained_model_id = "/monster/data/model/Qwen2.5-0.5B-Instruct/"
         self.tokenizer = Tokenicer.load(self.pretrained_model_id)
-        self.tokenizer.auto_assign_pad_token()
         self.example = 'Test Case String'
         self.expect_input_ids = [2271, 11538, 923]
 
