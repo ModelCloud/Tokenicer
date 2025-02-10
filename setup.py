@@ -3,6 +3,9 @@ from pathlib import Path
 
 __version__ = "0.0.1-dev"
 
+with open("requirements.txt") as f:
+    requirements = f.read().splitlines()
+
 setup(
     name="tokenicer",
     version=__version__,
@@ -13,8 +16,8 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/ModelCloud/Tokenicer",
     packages=find_packages(),
-    install_requires=[],
-    platform=["linux"],
+    install_requires=requirements,
+    platform=["linux", "windows", "darwin"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",
