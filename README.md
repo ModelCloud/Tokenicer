@@ -37,7 +37,7 @@ uv pip install -v tokenicer
 git clone https://github.com/ModelCloud/Tokencier.git && cd Tokenicer
 
 # compile
-pip install -v . --no-build-isolation
+pip install -v . 
 ```
 
 ## Usage
@@ -54,7 +54,7 @@ from tokenicer import Tokenicer
 tokenizer = Tokenicer.load('Qwen/Qwen2.5-0.5B-Instruct')
 
 # That's it! Toke(n)icer has auto-fixed Qwen2.5-0.5B-Instruct's incorrect `pad_token`.
-# Now this this model can be `trained` and `inferenced` correctly when `batch`/`masks` are applied.
+# Now this this model can be `trained` and `inferenced` correctly with `batch` and `masks`.
 print(f"pad_token: `{tokenizer.pad_token}`")
 ```
 
