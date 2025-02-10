@@ -1,5 +1,5 @@
 <h1 align="center">Toke(n)icer</h1>
-<p align="center">A (nicer) tokenizer you want to use for model `inference` and `training`: with all known peventable `gotchas` normalized or auto-fixed.</p>
+<p align="center">A (nicer) tokenizer you want to use for model inference and training: with all known peventable gotchas normalized or auto-fixed.</p>
 <p align="center">
     <a href="https://github.com/ModelCloud/Tokenicer/releases" style="text-decoration:none;"><img alt="GitHub release" src="https://img.shields.io/github/release/ModelCloud/Tokenicer.svg"></a>
     <a href="https://pypi.org/project/tokenicer/" style="text-decoration:none;"><img alt="PyPI - Version" src="https://img.shields.io/pypi/v/tokenicer"></a>
