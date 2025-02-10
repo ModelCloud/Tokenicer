@@ -40,6 +40,25 @@ git clone https://github.com/ModelCloud/Tokencier.git && cd Tokenicer
 pip install -v . --no-build-isolation
 ```
 
+## Use
+
+* Use Tokenicer to replace AutoTokenizer, Tokenicer API is compatible with AutoTokenizer
+
+```
+from tokenicer import Tokenicer
+tokenizer = Tokenicer.load(tokenizer_or_path='Qwen/Qwen2.5-0.5B-Instruct')
+
+# Auto fix pad_token
+tokenizer.auto_assign_pad_token()
+
+bos_token = tokenizer.bos_token # <|im_end|>
+pad_token = tokenizer.pad_token # <|fim_pad|>
+
+text = "test string"
+input_ids = tokenizer.encode(text, add_special_tokens=False) # [1944, 914]
+
+```
+
 ## Citation
 
 ```
