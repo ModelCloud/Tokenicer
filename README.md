@@ -37,3 +37,15 @@ git clone https://github.com/ModelCloud/Tokencier.git && cd Tokenicer
 pip install -v . --no-build-isolation
 ```
 
+## Citation
+
+```
+@misc{gptqmodel,
+    author = {ModelCloud.ai and qubitium@modelcloud.ai},
+    title = {Toke(n)icer},
+    year = {2025},
+    publisher = {GitHub},
+    journal = {GitHub repository},
+    howpublished = {\url{https://github.com/modelcloud/tokenicer}},
+    note = {Contact: qubitium@modelcloud.ai}
+}
