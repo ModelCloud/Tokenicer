@@ -46,7 +46,7 @@ pip install -v . --no-build-isolation
 
 ```
 from tokenicer import Tokenicer
-tokenizer = Tokenicer.load(tokenizer_or_path='Qwen/Qwen2.5-0.5B-Instruct')
+tokenizer = Tokenicer.load('Qwen/Qwen2.5-0.5B-Instruct')
 
 # Auto fix pad_token
 tokenizer.auto_assign_pad_token()

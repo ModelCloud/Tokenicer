@@ -26,26 +26,27 @@ logging.basicConfig(level=logging.INFO)
 
 class Tokenicer:
     tokenizer: Union[str, PreTrainedTokenizerBase] = None
-    trust_remote: bool = False
     model_config = None
 
     @classmethod
-    def load(cls, tokenizer_or_path: Union[str, PreTrainedTokenizerBase], trust_remote: bool = False, **kwargs):
-        if tokenizer_or_path is None:
+    def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], **kwargs):
+        if pretrained_model_name_or_path is None:
             raise ValueError("`tokenizer_or_path` cannot be `None`.")
+
+        trust_remote_code = kwargs.get('trust_remote_code', False)
+
         tokenicer = cls()
-        tokenicer.trust_remote = trust_remote
 
         path = None
-        if isinstance(tokenizer_or_path, PreTrainedTokenizerBase):
-            tokenizer = tokenizer_or_path
+        if isinstance(pretrained_model_name_or_path, PreTrainedTokenizerBase):
+            tokenizer = pretrained_model_name_or_path
             tokenicer.tokenizer = tokenizer
             path = config_path(tokenizer)
-        elif isinstance(tokenizer_or_path, str):
-            tokenizer = AutoTokenizer.from_pretrained(tokenizer_or_path, trust_remote_code=trust_remote, **kwargs)
+        elif isinstance(pretrained_model_name_or_path, str):
+            tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **kwargs)
             if isinstance(tokenizer, PreTrainedTokenizerBase):
                 tokenicer.tokenizer = tokenizer
-                path = tokenizer_or_path
+                path = pretrained_model_name_or_path
             else:
                 ValueError(
                     f"Failed to initialize `tokenizer`: please ensure that the `tokenizer_or_path` parameter is set correctly.")
@@ -53,7 +54,7 @@ class Tokenicer:
             raise ValueError(
                 f"Unsupported `tokenizer_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(tokenizer_or_path)}`.")
 
-        tokenicer.model_config = auto_config(path, trust_remote)
+        tokenicer.model_config = auto_config(path, trust_remote_code)
 
         if tokenicer.model_config is None:
             logger.warning(
@@ -71,7 +72,7 @@ class Tokenicer:
         model_config = None
         if model_or_path is not None:
             if isinstance(model_or_path, str):
-                model_config = auto_config(model_or_path, self.trust_remote)
+                model_config = auto_config(model_or_path, self.tokenizer.trust_remote_code)
             elif isinstance(model_or_path, PreTrainedModel):
                 model_config = getattr(model_or_path, "config", None)
             else:
