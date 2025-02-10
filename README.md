@@ -40,11 +40,14 @@ git clone https://github.com/ModelCloud/Tokencier.git && cd Tokenicer
 pip install -v . --no-build-isolation
 ```
 
-## Use
+## Usage
 
-* Use Tokenicer to replace AutoTokenizer, Tokenicer API is compatible with AutoTokenizer
+* Replace all calls to `AutoTokenizer.from_pretrained()` with `Tokenizer.load()`: args are 100% compatible with `AutoTokenizer`
 
-```
+```py
+# from tokenizer import AutoTokenizer
+# tokenizer = AutoTokenizer.from_pretrained()
+
 from tokenicer import Tokenicer
 tokenizer = Tokenicer.load(tokenizer_or_path='Qwen/Qwen2.5-0.5B-Instruct')
 
