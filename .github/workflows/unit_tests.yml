@@ -14,12 +14,12 @@ env:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ ubuntu-latest, macos-latest, macos-13, windows-latest ]
+    runs-on: [ self-hosted ]
+    container:
+      image: 10.0.13.31:5000/modelcloud/gptqmodel:github-ci-v5
+      volumes:
+        - /home/ci/models:/monster/data/model
+        - /home/ci/models/huggingface:/github/home/.cache/huggingface
     steps:
       - uses: actions/checkout@v4
 
@@ -34,5 +34,8 @@ jobs:
       - name: install
         run: pip install .
 
-      - name: test
+      - name: test_pad_token
         run: pytest tests/test_pad_token.py
+
+      - name: test_tokenicer_forward
+        run: pytest tests/test_tokenicer_forward.py
