@@ -43,8 +43,10 @@ class TestPadToken(unittest.TestCase):
                        pad_tokens: Optional[List[Union[str, int]]] = None,
                        trust_remote: bool = False
                        ):
-        tokenicer = Tokenicer.load(tokenizer_or_path=tokenizer_or_path, trust_remote=trust_remote)
-        tokenicer.auto_assign_pad_token(pad_tokens=pad_tokens)
+        tokenicer = Tokenicer.load(tokenizer_or_path, trust_remote_code=trust_remote)
+
+        if pad_tokens is not None:
+            tokenicer.auto_fix_pad_token(pad_tokens=pad_tokens)
 
         self.assertEqual(
             tokenicer.tokenizer.pad_token,

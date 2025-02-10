@@ -27,7 +27,7 @@ setup(
     version=__version__,
     author="ModelCloud",
     author_email="qubitium@modelcloud.ai",
-    description="A nicer tokenizer",
+    description="A (nicer) tokenizer you want to use for model `inference` and `training`: with all known peventable `gotchas` normalized or auto-fixed.",
     long_description=(Path(__file__).parent / "README.md").read_text(encoding="UTF-8"),
     long_description_content_type="text/markdown",
     url="https://github.com/ModelCloud/Tokenicer",
