@@ -36,11 +36,11 @@ jobs:
       - name: Upload sdist to github artifact
         uses: actions/upload-artifact@v4
         with:
-          name: whl
+          name: tokenicer
           path: dist/*gz
 
       - name: Upload sdist to pypi
-        if: (github.event_name == 'release' || github.event.inputs.upload_pypi == 'true') && !cancelled()
+        if: fail() && (github.event_name == 'release' || github.event.inputs.upload_pypi == 'true') && !cancelled()
         env:
           TWINE_USERNAME: "__token__"
           TWINE_PASSWORD: ${{ secrets.PYPI_KEY }}
