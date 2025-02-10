@@ -9,7 +9,7 @@ def candidate_ids(token_list: List[Union[str, int]], vocab: dict) -> List[Option
             val = vocab.get(item)
             if val is not None:
                 token_ids.append(val)
-        if isinstance(item, int):
+        elif isinstance(item, int):
             if 0 <= item < len(vocab):
                 token_ids.append(item)
     return token_ids
@@ -20,18 +20,10 @@ def candidate_id(token_list: List[Union[str, int]], vocab: dict) -> Optional[int
     return token_ids[0] if token_ids else None
 
 
-def retrieve_config_path(obj) -> Optional[str]:
-    path = getattr(obj, "name_or_path", None)
-    if path:
-        return path
-
+def config_path(obj) -> Optional[str]:
+    # PretrainedConfig._name_or_path
+    # self._name_or_path = str(kwargs.pop("name_or_path", ""))
     path = getattr(obj, "_name_or_path", None)
-    if path:
-        return path
-
-    init_kwargs = getattr(obj, "init_kwargs", None)
-    if init_kwargs and "name_or_path" in init_kwargs:
-        return init_kwargs["name_or_path"]
     return None
 
 
