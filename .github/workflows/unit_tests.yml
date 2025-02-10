@@ -62,7 +62,4 @@ jobs:
         run: pip install .
 
       - name: test_pad_token
-        run: pytest tests/test_pad_token.py
-
-      - name: test_tokenicer_forward
-        run: pytest tests/test_tokenicer_forward.py
+        run: pytest tests/${{ matrix.test_script }}
