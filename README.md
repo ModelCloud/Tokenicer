@@ -45,9 +45,11 @@ pip install -v . --no-build-isolation
 * Replace all calls to `AutoTokenizer.from_pretrained()` with `Tokenizer.load()`: args are 100% compatible with `AutoTokenizer`
 
 ```py
+# Replace `AutoTokenizer.from_pretrained()`
 # from tokenizer import AutoTokenizer
-# tokenizer = AutoTokenizer.from_pretrained()
+# tokenizer = AutoTokenizer.from_pretrained('Qwen/Qwen2.5-0.5B-Instruct')
 
+# With `Tokenicer.load()`
 from tokenicer import Tokenicer
 tokenizer = Tokenicer.load('Qwen/Qwen2.5-0.5B-Instruct')
 
