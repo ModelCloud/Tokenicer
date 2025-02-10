@@ -21,10 +21,8 @@ def candidate_id(token_list: List[Union[str, int]], vocab: dict) -> Optional[int
 
 
 def config_path(obj) -> Optional[str]:
-    # PretrainedConfig._name_or_path
-    # self._name_or_path = str(kwargs.pop("name_or_path", ""))
-    path = getattr(obj, "_name_or_path", None)
-    return None
+    path = getattr(obj, "name_or_path", None)
+    return path
 
 
 def auto_config(path, trust_remote) -> Optional[PretrainedConfig]:

@@ -21,12 +21,12 @@ class TestPadToken(unittest.TestCase):
             (AutoTokenizer.from_pretrained('/monster/data/model/glm-4-9b-chat-hf'), '<|endoftext|>')
         ]
     )
-    def test_auto_assign_pad_token_2(self,
-                                     tokenizer_or_path: str,
-                                     expect_pad_token: str,
-                                     pad_tokens: Optional[List[Union[str, int]]] = None,
-                                     trust_remote: bool = False
-                                     ):
+    def test_pad_token(self,
+                       tokenizer_or_path: str,
+                       expect_pad_token: str,
+                       pad_tokens: Optional[List[Union[str, int]]] = None,
+                       trust_remote: bool = False
+                       ):
         tokenicer = Tokenicer.load(tokenizer_or_path=tokenizer_or_path, trust_remote=trust_remote)
         tokenicer.auto_assign_pad_token(pad_tokens=pad_tokens)
 
