@@ -9,7 +9,7 @@
 </p>
 
 ## News
-* 02/10/2025 [0.0.1](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.1): 🤗 Initial release!
+* 02/10/2025 [0.0.2](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.2): 🤗 Initial release!
 
 ## Features:
 
