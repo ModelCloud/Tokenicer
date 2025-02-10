@@ -115,10 +115,10 @@ class Tokenicer:
 
         # Match MODEL_PAD_TOKEN_MAP to get pad token
         if pad_token_id is None and MODEL_PAD_TOKEN_MAP.get(model_config.model_type, None) is not None:
-            tuple = MODEL_PAD_TOKEN_MAP.get(model_config.model_type)
-            pad_token = tuple.token
+            token_tuple = MODEL_PAD_TOKEN_MAP.get(model_config.model_type)
+            pad_token = token_tuple.token
             token_id = vocab.get(pad_token, None)
-            if token_id is not None and token_id == tuple.token_id:
+            if token_id is not None and token_id == token_tuple.token_id:
                 pad_token_id = token_id
 
         # Match DEFAULT_PAD_TOKENS to get pad token
