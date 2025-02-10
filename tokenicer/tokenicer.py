@@ -16,7 +16,7 @@ class Tokenicer:
     @classmethod
     def load(cls, tokenizer_or_path: Union[str, PreTrainedTokenizerBase], trust_remote: bool = False):
         if tokenizer_or_path is None:
-            raise ValueError("`tokenizer_or_path` cannot be None.")
+            raise ValueError("`tokenizer_or_path` cannot be `None`.")
         tokenicer = cls()
         tokenicer.trust_remote = trust_remote
 
@@ -32,17 +32,17 @@ class Tokenicer:
                 config_path = tokenizer_or_path
             else:
                 ValueError(
-                    f"Failed to initialize `tokenizer`. Please ensure that the `tokenizer_or_path` parameter is set correctly.")
+                    f"Failed to initialize `tokenizer`: please ensure that the `tokenizer_or_path` parameter is set correctly.")
         else:
             raise ValueError(
-                f"Unsupported type in tokenizer_or_path: {type(tokenizer_or_path)}. Expected str or PreTrainedTokenizerBase.")
+                f"Unsupported `tokenizer_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(tokenizer_or_path)}`.")
 
         tokenicer.model_config = auto_config(config_path, trust_remote)
 
         if tokenicer.model_config is None:
             logger.warning(
-                f"Cannot initialize `model_config` from the provided `tokenizer_or_path` parameter. "
-                f"If, when calling the `auto_assign_pad_token()` API, it is necessary to specify the `model_or_path` parameter.",
+                f"Auto model config retrieval from `tokenizer_or_path` failed. "
+                f"Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
         return tokenicer
@@ -60,17 +60,18 @@ class Tokenicer:
                 model_config = getattr(model_or_path, "config", None)
             else:
                 raise ValueError(
-                    f"Unsupported type in model_or_path: {type(model_or_path)}. Expected str or PreTrainedModel.")
+                    f"Unsupported `model_or_path` type: Expected `str` or `PreTrainedModel`, actual = `{type(model_or_path)}`.")
 
             if model_config is None:
-                raise ValueError("Could not retrieve config from the provided `model_or_path`.")
+                raise ValueError("Can not retrieve config from the provided `model_or_path`.")
         else:
             if self.model_config is not None:
                 model_config = self.model_config
             else:
                 raise ValueError(
-                    "Failed to initialize model config. Please ensure that the `Tokenicer.load(tokenizer_or_path)` parameter is set correctly."
-                    "or set `auto_assign_pad_token(model_or_path)` parameter")
+                    f"Auto model config retrieval from `tokenizer_or_path` failed. "
+                    f"Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
+            )
 
         pad_token_id = model_config.pad_token_id
 
@@ -78,7 +79,7 @@ class Tokenicer:
             pad_token_id = self._auto_map_pad_token(model_config=model_config, pad_tokens=pad_tokens)
             if pad_token_id is None:
                 raise ValueError(
-                    "Unable to automatically fix Pad Token setting."
+                    "Model tokenizer requires fixing but we are unnable to auto-fix `pad_token`. Please consult model docks manually pass a `pad_token` to `load()`."
                 )
 
         self.tokenizer.pad_token_id = pad_token_id
