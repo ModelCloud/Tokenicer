@@ -2,7 +2,7 @@ import logging
 from typing import Union, List, Optional
 from transformers import PreTrainedTokenizerBase, PreTrainedModel, AutoTokenizer
 from .util import candidate_ids, retrieve_config_path, auto_config
-from .const import DEFAULT_PAD_TOKENS
+from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -74,8 +74,15 @@ class Tokenicer:
 
         pad_token_id = model_config.pad_token_id
 
+        vocab = self.tokenizer.get_vocab()
+
+        if pad_token_id is None and MODEL_PAD_TOKEN_MAP.get(model_config.model_type, None) is not None:
+            pad_token = MODEL_PAD_TOKEN_MAP.get(model_config.model_type)
+            val = vocab.get(pad_token)
+            if val is not None:
+                pad_token_id = val
+
         if pad_token_id is None:
-            vocab = self.tokenizer.get_vocab()
             pad_tokens = pad_tokens or []
             pad_token_ids = candidate_ids(pad_tokens, vocab)
             default_candidate_ids = candidate_ids(DEFAULT_PAD_TOKENS, vocab)
