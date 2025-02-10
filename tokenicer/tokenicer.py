@@ -31,7 +31,7 @@ class Tokenicer:
     @classmethod
     def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], **kwargs):
         if pretrained_model_name_or_path is None:
-            raise ValueError("`tokenizer_or_path` cannot be `None`.")
+            raise ValueError("`pretrained_model_name_or_path` cannot be `None`.")
 
         trust_remote_code = kwargs.get('trust_remote_code', False)
 
@@ -49,16 +49,16 @@ class Tokenicer:
                 path = pretrained_model_name_or_path
             else:
                 ValueError(
-                    f"Failed to initialize `tokenizer`: please ensure that the `tokenizer_or_path` parameter is set correctly.")
+                    f"Failed to initialize `tokenizer`: please ensure that the `pretrained_model_name_or_path` parameter is set correctly.")
         else:
             raise ValueError(
-                f"Unsupported `tokenizer_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(tokenizer_or_path)}`.")
+                f"Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
 
         tokenicer.model_config = auto_config(path, trust_remote_code)
 
         if tokenicer.model_config is None:
             logger.warning(
-                f"Auto model config retrieval from `tokenizer_or_path` failed. "
+                f"Auto model config retrieval from `pretrained_model_name_or_path` failed. "
                 f"Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
@@ -86,7 +86,7 @@ class Tokenicer:
                 model_config = self.model_config
             else:
                 raise ValueError(
-                    f"Auto model config retrieval from `tokenizer_or_path` failed. "
+                    f"Auto model config retrieval from `pretrained_model_name_or_path` failed. "
                     f"Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
