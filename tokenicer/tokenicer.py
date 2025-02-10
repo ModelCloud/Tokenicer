@@ -74,17 +74,17 @@ class Tokenicer:
 
         pad_token_id = model_config.pad_token_id
 
-        if pad_token_id is None or pad_token_id == model_config.bos_token_id or pad_token_id == model_config.eos_token_id:
+        if pad_token_id is None or pad_token_id in [model_config.bos_token_id, model_config.eos_token_id]:
             pad_token_id = self._auto_map_pad_token(model_config=model_config, pad_tokens=pad_tokens)
             if pad_token_id is None:
                 raise ValueError(
-                    "No valid pad token found. Please ensure you have set a valid `pad_tokens`."
+                    "Unable to automatically fix Pad Token setting."
                 )
 
         self.tokenizer.pad_token_id = pad_token_id
         self.tokenizer.pad_token = self.tokenizer.decode([pad_token_id])
 
-        logger.info(f"Assigned pad_token_id={pad_token_id} (token='{self.tokenizer.pad_token}').")
+        logger.info(f"Auto fixed pad_token_id={pad_token_id} (token='{self.tokenizer.pad_token}').")
 
     def _auto_map_pad_token(self, model_config, pad_tokens) -> Optional[int]:
         pad_token_id = None
