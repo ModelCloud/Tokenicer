@@ -43,6 +43,8 @@ jobs:
 
   test:
     runs-on: [ self-hosted ]
+    needs:
+      - list-test-files
     container:
       image: 10.0.13.31:5000/modelcloud/gptqmodel:github-ci-v5
       volumes:
