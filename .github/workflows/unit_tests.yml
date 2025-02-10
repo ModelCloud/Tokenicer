@@ -13,6 +13,34 @@ env:
   CUDA_DEVICE_ORDER: PCI_BUS_ID
 
 jobs:
+
+  list-test-files:
+    runs-on: ubuntu-24.04
+    if: github.event.inputs.m4-only != 'true'
+    outputs:
+      test-files: ${{ steps.files.outputs.test-files }}
+    steps:
+      - name: Checkout Codes
+        uses: actions/checkout@v4
+
+      - name: List files
+        id: files
+        run: |
+          dir="tests"
+          json_array="["
+
+          for file in "$dir"/*; do
+          [ -f "$file" ] || continue
+          filename=$(basename "$file")
+          json_array+="\"$filename\","
+          done
+
+          json_array="${json_array%,}]"
+
+          echo "$json_array"
+
+          echo "test-files=$$json_array" >> "$GITHUB_OUTPUT"
+
   test:
     runs-on: [ self-hosted ]
     container:
@@ -20,6 +48,10 @@ jobs:
       volumes:
         - /home/ci/models:/monster/data/model
         - /home/ci/models/huggingface:/github/home/.cache/huggingface
+    strategy:
+      fail-fast: false
+      matrix:
+        test_script: ${{ fromJSON(needs.list-test-files.outputs.test-files) }}
     steps:
       - uses: actions/checkout@v4
 
