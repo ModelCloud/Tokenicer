@@ -31,11 +31,18 @@ jobs:
         run: |
           python -m build --sdist
           twine check dist/*
+          pip install dist/*
 
       - name: Upload sdist to pypi
-        if: (github.event_name == 'release' || github.event.inputs.upload_pypi == 'true') && !cancelled()
+        if: succeed() && (github.event_name == 'release' || github.event.inputs.upload_pypi == 'true') && !cancelled()
         env:
           TWINE_USERNAME: "__token__"
           TWINE_PASSWORD: ${{ secrets.PYPI_KEY }}
         run: |
           python -m twine upload dist/*gz
+
+      - name: Clean cache
+        if: always()
+        run: |
+          pip cache purge || true
+          rm -rf ../Tokenicer/*
