@@ -31,4 +31,5 @@ MODEL_PAD_TOKEN_MAP = {
         "qwen2_5_vl": TOKEN_TUPLE(token='<|vision_pad|>', token_id=151654),
         "qwen2_vl": TOKEN_TUPLE(token='<|vision_pad|>', token_id=151654),
         "qwen2": TOKEN_TUPLE(token='<|fim_pad|>', token_id=151662),
+        "deepseek_v3": TOKEN_TUPLE(token='<｜▁pad▁｜>', token_id=2),
 }
