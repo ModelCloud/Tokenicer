@@ -76,24 +76,28 @@ class Tokenicer:
 
         vocab = self.tokenizer.get_vocab()
 
+        # Prioritize matching of pad token entered by the user
+        if pad_token_id is None and pad_tokens is not None:
+            results = candidate_ids(pad_tokens, vocab)
+            for candidate_id in results:
+                pad_token_id = candidate_id
+                break
+
+        # Match MODEL_PAD_TOKEN_MAP to get pad token
         if pad_token_id is None and MODEL_PAD_TOKEN_MAP.get(model_config.model_type, None) is not None:
             pad_token = MODEL_PAD_TOKEN_MAP.get(model_config.model_type)
-            val = vocab.get(pad_token)
+            val = vocab.get(pad_token, None)
             if val is not None:
                 pad_token_id = val
 
+        # Match DEFAULT_PAD_TOKENS to get pad token
         if pad_token_id is None:
-            pad_tokens = pad_tokens or []
-            pad_token_ids = candidate_ids(pad_tokens, vocab)
-            default_candidate_ids = candidate_ids(DEFAULT_PAD_TOKENS, vocab)
-
-            results = pad_token_ids + default_candidate_ids
-
+            results = candidate_ids(DEFAULT_PAD_TOKENS, vocab)
             for candidate_id in results:
-                if candidate_id is not None:
-                    pad_token_id = candidate_id
-                    break
+                pad_token_id = candidate_id
+                break
 
+        # Use eos_token as pad token
         if pad_token_id is None:
             if isinstance(model_config.eos_token_id, list) and model_config.eos_token_id:
                 pad_token_id = model_config.eos_token_id[0]
