@@ -14,7 +14,7 @@ class Tokenicer:
     model_config = None
 
     @classmethod
-    def load(cls, tokenizer_or_path: Union[str, PreTrainedTokenizerBase], trust_remote: bool = False):
+    def load(cls, tokenizer_or_path: Union[str, PreTrainedTokenizerBase], trust_remote: bool = False, **kwargs):
         if tokenizer_or_path is None:
             raise ValueError("`tokenizer_or_path` cannot be `None`.")
         tokenicer = cls()
@@ -26,7 +26,7 @@ class Tokenicer:
             tokenicer.tokenizer = tokenizer
             path = config_path(tokenizer)
         elif isinstance(tokenizer_or_path, str):
-            tokenizer = AutoTokenizer.from_pretrained(tokenizer_or_path, trust_remote_code=trust_remote)
+            tokenizer = AutoTokenizer.from_pretrained(tokenizer_or_path, trust_remote_code=trust_remote, **kwargs)
             if isinstance(tokenizer, PreTrainedTokenizerBase):
                 tokenicer.tokenizer = tokenizer
                 path = tokenizer_or_path
