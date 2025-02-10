@@ -1,7 +1,7 @@
 import logging
 from typing import Union, List, Optional
 from transformers import PreTrainedTokenizerBase, PreTrainedModel, AutoTokenizer
-from .util import candidate_ids, retrieve_config_path, auto_config
+from .util import candidate_id, retrieve_config_path, auto_config
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
 
 logger = logging.getLogger(__name__)
@@ -74,29 +74,38 @@ class Tokenicer:
 
         pad_token_id = model_config.pad_token_id
 
+        if pad_token_id is None or pad_token_id == model_config.bos_token_id or pad_token_id == model_config.eos_token_id:
+            pad_token_id = self._auto_map_pad_token(model_config=model_config, pad_tokens=pad_tokens)
+            if pad_token_id is None:
+                raise ValueError(
+                    "No valid pad token found. Please ensure you have set a valid `pad_tokens`."
+                )
+
+        self.tokenizer.pad_token_id = pad_token_id
+        self.tokenizer.pad_token = self.tokenizer.decode([pad_token_id])
+
+        logger.info(f"Assigned pad_token_id={pad_token_id} (token='{self.tokenizer.pad_token}').")
+
+    def _auto_map_pad_token(self, model_config, pad_tokens) -> Optional[int]:
+        pad_token_id = None
+
         vocab = self.tokenizer.get_vocab()
 
         # Prioritize matching of pad token entered by the user
-        if pad_token_id is None and pad_tokens is not None:
-            results = candidate_ids(pad_tokens, vocab)
-            for candidate_id in results:
-                pad_token_id = candidate_id
-                break
+        if pad_tokens is not None:
+            pad_token_id = candidate_id(pad_tokens, vocab)
 
         # Match MODEL_PAD_TOKEN_MAP to get pad token
         if pad_token_id is None and MODEL_PAD_TOKEN_MAP.get(model_config.model_type, None) is not None:
-            pad_token_tuple = MODEL_PAD_TOKEN_MAP.get(model_config.model_type)
-            pad_token = pad_token_tuple.pad_token
-            val = vocab.get(pad_token, None)
-            if val is not None and val == pad_token_tuple.pad_token_id:
-                pad_token_id = val
+            tuple = MODEL_PAD_TOKEN_MAP.get(model_config.model_type)
+            pad_token = tuple.token
+            token_id = vocab.get(pad_token, None)
+            if token_id is not None and token_id == tuple.token_id:
+                pad_token_id = token_id
 
         # Match DEFAULT_PAD_TOKENS to get pad token
         if pad_token_id is None:
-            results = candidate_ids(DEFAULT_PAD_TOKENS, vocab)
-            for candidate_id in results:
-                pad_token_id = candidate_id
-                break
+            pad_token_id = candidate_id(DEFAULT_PAD_TOKENS, vocab)
 
         # Use eos_token as pad token
         if pad_token_id is None:
@@ -104,13 +113,5 @@ class Tokenicer:
                 pad_token_id = model_config.eos_token_id[0]
             else:
                 pad_token_id = model_config.eos_token_id
+        return pad_token_id
 
-        if pad_token_id is None:
-            raise ValueError(
-                "No valid pad token found. Please ensure you have set a valid `pad_tokens`."
-            )
-
-        self.tokenizer.pad_token_id = pad_token_id
-        self.tokenizer.pad_token = self.tokenizer.decode([pad_token_id])
-
-        logger.info(f"Assigned pad_token_id={pad_token_id} (token='{self.tokenizer.pad_token}').")
