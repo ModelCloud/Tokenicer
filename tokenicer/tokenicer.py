@@ -116,3 +116,11 @@ class Tokenicer:
                 pad_token_id = model_config.eos_token_id
         return pad_token_id
 
+    def __getattr__(self, name):
+        if hasattr(self.tokenizer, name):
+            return getattr(self.tokenizer, name)
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+    def __call__(self, data, **kwargs):
+        return self.tokenizer(data, **kwargs)
+
