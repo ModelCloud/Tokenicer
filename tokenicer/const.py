@@ -13,5 +13,6 @@ TOKEN_TUPLE = namedtuple("TokenTuple", ["token", "token_id"])
 MODEL_PAD_TOKEN_MAP = {
         "llama": TOKEN_TUPLE(token='<|finetune_right_pad_id|>', token_id=128004),
         "qwen2_5_vl": TOKEN_TUPLE(token='<|vision_pad|>', token_id=151654),
+        "qwen2_vl": TOKEN_TUPLE(token='<|vision_pad|>', token_id=151654),
         "qwen2": TOKEN_TUPLE(token='<|fim_pad|>', token_id=151662),
 }
