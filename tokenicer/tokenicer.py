@@ -29,7 +29,7 @@ class Tokenicer:
     model_config = None
 
     @classmethod
-    def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], **kwargs):
+    def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None, **kwargs):
         if pretrained_model_name_or_path is None:
             raise ValueError("`pretrained_model_name_or_path` cannot be `None`.")
 
@@ -62,7 +62,7 @@ class Tokenicer:
                 f"Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
-        tokenicer.auto_fix_pad_token()
+        tokenicer.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
 
         return tokenicer
 
@@ -70,6 +70,7 @@ class Tokenicer:
         self,
         model_or_path: Optional[Union[str, PreTrainedModel]] = None,
         pad_tokens: Optional[List[Union[str, int]]] = None,
+        strict: bool = False,
     ):
         model_config = None
         if model_or_path is not None:
@@ -96,9 +97,19 @@ class Tokenicer:
 
         if pad_token_id is None or pad_token_id in [model_config.bos_token_id, model_config.eos_token_id]:
             pad_token_id = self._auto_map_pad_token(model_config=model_config, pad_tokens=pad_tokens)
+
+            if not strict:
+                if pad_token_id is None and self.tokenizer.eos_token_id is not None:
+                    pad_token_id = self.tokenizer.eos_token_id
+                    logger.warning(
+                        f"Auto model config unable to fix `pad_token`, Use tokenizer.eos_token as pad_token"
+                        f"pad_token = eos_token, There may be problems with the model during training or inference."
+                        f"It is recommended that you manually pass a `pad_tokens` to `load()`",
+                    )
+
             if pad_token_id is None:
                 raise ValueError(
-                    "Model tokenizer requires fixing but we are unnable to auto-fix `pad_token`. Please consult model docks manually pass a `pad_token` to `load()`."
+                    "Model tokenizer requires fixing but we are unable to auto-fix `pad_token`. Please consult model docks manually pass a `pad_tokens` to `load()` or set `strict`= False."
                 )
 
         self.tokenizer.pad_token_id = pad_token_id
@@ -133,6 +144,7 @@ class Tokenicer:
                 pad_token_id = model_config.eos_token_id[0]
             else:
                 pad_token_id = model_config.eos_token_id
+
         return pad_token_id
 
     def __getattr__(self, name):
