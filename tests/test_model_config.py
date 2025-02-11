@@ -24,7 +24,7 @@ class TestModelConfig(unittest.TestCase):
         model_path = "/monster/data/model/mpt-7b-instruct"
         tokenicer = Tokenicer.load(model_path)
 
-        expect_bos_token_id = 1
+        expect_bos_token_id = 0
         expect_eos_token_id = 0
 
         self.assertEqual(
