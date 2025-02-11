@@ -18,7 +18,7 @@ import os
 import json
 from typing import Union, List
 from .util import config_path
-from .const import VERIFY_JSON_FILE_NAME, INPUT_KEY, TENSOR_KEY, VERIFY_ENCODE_PARAMS
+from .const import VERIFY_JSON_FILE_NAME, VERIFY_ENCODE_PARAMS, INPUT_KEY, TENSOR_KEY
 
 
 def _verify_file_exist(tokenizer):
@@ -36,6 +36,8 @@ def _verify_file_exist(tokenizer):
 def _save_verify(prompts: Union[str, List[str]], tokenizer):
     exist, verify_json_path = _verify_file_exist(tokenizer)
     if exist:
+        import logging
+        logger = logging.getLogger(__name__)
         logger.warning("The verification file already exists.")
         return verify_json_path
 
@@ -81,6 +83,3 @@ def _verify(tokenizer) -> bool:
             if tensor != tokenized["input_ids"].tolist():
                 return False
     return True
-
-
-
