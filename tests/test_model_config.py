@@ -37,5 +37,5 @@ class TestModelConfig(unittest.TestCase):
         self.assertEqual(
             tokenicer.model_config.eos_token_id,
             expect_eos_token_id,
-            msg=f"Expected bos_token_id='{expect_bos_token_id}' but got '{tokenicer.model_config.bos_token_id}'."
+            msg=f"Expected bos_token_id='{expect_eos_token_id}' but got '{tokenicer.model_config.eos_token_id}'."
         )
