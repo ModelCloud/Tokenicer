@@ -51,5 +51,5 @@ class TestPadToken(unittest.TestCase):
         self.assertEqual(
             tokenicer.tokenizer.pad_token,
             expect_pad_token,
-            msg=f"Expected pad_token='{expect_pad_token}' but got '{tokenicer.tokenizer.pad_token}' for pad_tokens={pad_tokens}."
+            msg=f"Expected pad_token: '{expect_pad_token}', actual='{tokenicer.tokenizer.pad_token}'."
         )
