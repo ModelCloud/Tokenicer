@@ -98,11 +98,10 @@ class Tokenicer:
         if pad_token_id is None or pad_token_id in [model_config.bos_token_id, model_config.eos_token_id]:
             pad_token_id = self._auto_map_pad_token(model_config=model_config, pad_tokens=pad_tokens)
 
-            if strict:
-                if pad_token_id is None:
-                    raise ValueError(
-                        "Tokenicer `strict`= True, Model tokenizer requires fixing but we are unable to auto-fix `pad_token`. Please consult model docks manually pass a `pad_tokens` to `load()` or set `strict`= False."
-                    )
+            if strict and pad_token_id is None:
+                raise ValueError(
+                    "Tokenicer `strict`= True, Model tokenizer requires fixing but we are unable to auto-fix `pad_token`. Please consult model docks manually pass a `pad_tokens` to `load()` or set `strict`= False."
+                )
             else:
                 if pad_token_id is None and self.tokenizer.eos_token_id is not None:
                     pad_token_id = self.tokenizer.eos_token_id
