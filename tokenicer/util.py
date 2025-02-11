@@ -16,6 +16,7 @@
 
 from typing import Union, List, Optional
 from transformers import AutoConfig, PretrainedConfig
+import string
 
 
 def candidate_ids(token_list: List[Union[str, int]], vocab: dict) -> List[Optional[int]]:
@@ -47,3 +48,21 @@ def auto_config(path, trust_remote) -> Optional[PretrainedConfig]:
     if isinstance(config, PretrainedConfig):
         model_config = config
     return model_config
+
+
+def all_special_characters():
+    # Get punctuation characters
+    punctuation_chars = string.punctuation
+
+    # Get whitespace characters (such as space, newline, tab, etc.)
+    whitespace_chars = string.whitespace
+
+    # Common mathematical symbols and operators (manually added)
+    math_and_operators = "+-*/=<>%&^|!~"
+
+    # Combine all special characters into a single string
+    all_special_chars = punctuation_chars + whitespace_chars + math_and_operators
+
+    # Return the combined string
+    return all_special_chars
+

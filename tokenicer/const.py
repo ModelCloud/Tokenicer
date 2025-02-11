@@ -74,4 +74,5 @@ VERIFY_DATASETS = [
         "Chào bạn! Tôi là một trí tuệ nhân tạo, rất vui được gặp bạn. Bạn cần giúp đỡ gì hôm nay?",
         # Polish
         "Cześć! Jak się masz? Mam nadzieję, że wszystko u Ciebie w porządku. Jeśli chcesz porozmawiać lub masz jakieś pytania, śmiało pisz!",
+        #
 ]

@@ -17,8 +17,8 @@
 import os
 import json
 from transformers import PreTrainedTokenizerBase
-from .util import config_path
-from .const import VERIFY_JSON_FILE_NAME, VERIFY_ENCODE_PARAMS, INPUT_KEY, TENSOR_KEY, VERIFY_DATASETS
+from .util import config_path, all_special_characters
+from .const import VERIFY_JSON_FILE_NAME, VERIFY_ENCODE_PARAMS, VERIFY_DATASETS
 from .config import VerifyData, VerifyConfig, VerifyMeta
 
 def _verify_file_exist(tokenizer):
@@ -43,6 +43,8 @@ def _save_verify(tokenizer: PreTrainedTokenizerBase, enable_chat_template: bool 
 
     if enable_chat_template and tokenizer.chat_template is None:
         raise ValueError('Tokenizer does not support chat template')
+
+    VERIFY_DATASETS.append(all_special_characters())
 
     prompts = []
     if enable_chat_template:
