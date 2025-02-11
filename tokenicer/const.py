@@ -34,3 +34,6 @@ MODEL_PAD_TOKEN_MAP = {
         "deepseek_v3": TOKEN_TUPLE(token='<｜▁pad▁｜>', token_id=2),
         "mpt": TOKEN_TUPLE(token='<|padding|>', token_id=1)
 }
+
+INPUT_KEY = "input"
+TENSOR_KEY = "tensor"

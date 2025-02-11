@@ -14,11 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import json
 import logging
 from typing import Union, List, Optional
 from transformers import PreTrainedTokenizerBase, PreTrainedModel, AutoTokenizer
 from .util import candidate_id, config_path, auto_config
-from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
+from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP, INPUT_KEY, TENSOR_KEY
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -27,6 +29,9 @@ logging.basicConfig(level=logging.INFO)
 class Tokenicer:
     tokenizer: Union[str, PreTrainedTokenizerBase] = None
     model_config = None
+
+    encode_params = {"return_tensors": "pt", "add_special_tokens": False}
+    VERIFY_JSON_FILE_NAME = "tokenizer_verify.jsonl"
 
     @classmethod
     def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None, **kwargs):
@@ -157,6 +162,64 @@ class Tokenicer:
         if model_config.eos_token_id is None and self.tokenizer.eos_token_id is not None:
             model_config.eos_token = self.tokenizer.eos_token
             model_config.eos_token_id = self.tokenizer.eos_token_id
+
+    def save_verify(self, prompts: Union[str, List[str]]):
+        exist, verify_json_path = self._verify_file_exist()
+        if exist:
+            logger.warning("The verification file already exists.")
+            return
+
+        if prompts is None:
+            raise ValueError("`prompts` cannot be None")
+
+        if not isinstance(prompts, str) and not isinstance(prompts, list):
+            raise ValueError(
+                f"Unsupported `prompts` type: Expected `str` or `List[str]`, actual = `{type(prompts)}`.")
+
+        if isinstance(prompts, str):
+            prompts = [prompts]
+
+        if len(prompts) == 0:
+            raise ValueError("len(prompts) == 0, `prompts` must be greater than 0")
+
+        results = []
+        for prompt in prompts:
+            tokenized = self.tokenizer.encode_plus(prompt, **self.encode_params)
+            jsonl = {INPUT_KEY: prompt, TENSOR_KEY: tokenized["input_ids"].tolist()}
+            results.append(jsonl)
+
+        with open(verify_json_path, 'w') as f:
+            for item in results:
+                json.dump(item, f)
+                f.write('\n')
+
+    def verify(self) -> bool:
+        exist, verify_json_path = self._verify_file_exist()
+        if not exist:
+            raise ValueError(f"The verification file does not exist, please call the `save_verify` API first")
+
+        with open(verify_json_path, 'r', encoding='utf-8') as file:
+            for line in file:
+                json_obj = json.loads(line)
+
+                input_text = json_obj[INPUT_KEY]
+                tensor = json_obj[TENSOR_KEY]
+
+                tokenized = self.tokenizer.encode_plus(input_text, **self.encode_params)
+                if tensor != tokenized["input_ids"].tolist():
+                    return False
+        return True
+
+    def _verify_file_exist(self):
+        path = config_path(self.tokenizer)
+        if path is None:
+            raise ValueError("Can not retrieve config path from the provided `pretrained_model_name_or_path`.")
+
+        verify_json_path = os.path.join(path, self.VERIFY_JSON_FILE_NAME)
+
+        if os.path.isfile(verify_json_path):
+            return True, verify_json_path
+        return False, None
 
     def __getattr__(self, name):
         if hasattr(self.tokenizer, name):
