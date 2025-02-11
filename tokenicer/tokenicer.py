@@ -20,7 +20,14 @@ import logging
 from typing import Union, List, Optional
 from transformers import PreTrainedTokenizerBase, PreTrainedModel, AutoTokenizer
 from .util import candidate_id, config_path, auto_config
-from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP, INPUT_KEY, TENSOR_KEY
+from .const import (
+    DEFAULT_PAD_TOKENS,
+    MODEL_PAD_TOKEN_MAP,
+    INPUT_KEY,
+    TENSOR_KEY,
+    VERIFY_JSON_FILE_NAME,
+    VERIFY_ENCODE_PARAMS
+)
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -29,9 +36,6 @@ logging.basicConfig(level=logging.INFO)
 class Tokenicer:
     tokenizer: Union[str, PreTrainedTokenizerBase] = None
     model_config = None
-
-    encode_params = {"return_tensors": "pt", "add_special_tokens": False}
-    VERIFY_JSON_FILE_NAME = "tokenizer_verify.jsonl"
 
     @classmethod
     def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None, **kwargs):
@@ -184,7 +188,7 @@ class Tokenicer:
 
         results = []
         for prompt in prompts:
-            tokenized = self.tokenizer.encode_plus(prompt, **self.encode_params)
+            tokenized = self.tokenizer.encode_plus(prompt, **VERIFY_ENCODE_PARAMS)
             jsonl = {INPUT_KEY: prompt, TENSOR_KEY: tokenized["input_ids"].tolist()}
             results.append(jsonl)
 
@@ -205,7 +209,7 @@ class Tokenicer:
                 input_text = json_obj[INPUT_KEY]
                 tensor = json_obj[TENSOR_KEY]
 
-                tokenized = self.tokenizer.encode_plus(input_text, **self.encode_params)
+                tokenized = self.tokenizer.encode_plus(input_text, **VERIFY_ENCODE_PARAMS)
                 if tensor != tokenized["input_ids"].tolist():
                     return False
         return True
@@ -215,7 +219,7 @@ class Tokenicer:
         if path is None:
             raise ValueError("Can not retrieve config path from the provided `pretrained_model_name_or_path`.")
 
-        verify_json_path = os.path.join(path, self.VERIFY_JSON_FILE_NAME)
+        verify_json_path = os.path.join(path, VERIFY_JSON_FILE_NAME)
 
         if os.path.isfile(verify_json_path):
             return True, verify_json_path
