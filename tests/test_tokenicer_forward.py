@@ -32,7 +32,7 @@ class TestTokenicer(unittest.TestCase):
         self.assertEqual(
             input_ids,
             self.expect_input_ids,
-            msg=f"Expected input_ids='{self.expect_input_ids}' but got '{input_ids}'."
+            msg=f"Expected input_ids=`{self.expect_input_ids}`, actual=`{input_ids}`."
         )
 
     @parameterized.expand(
@@ -53,7 +53,7 @@ class TestTokenicer(unittest.TestCase):
         self.assertEqual(
             result,
             expect_token,
-            msg=f"Expected {property}: '{expect_token}', actual='{result}'."
+            msg=f"Expected {property}: `{expect_token}`, actual=`{result}`."
         )
 
     def test_tokenicer_encode(self):
@@ -61,7 +61,7 @@ class TestTokenicer(unittest.TestCase):
          self.assertEqual(
              input_ids,
              self.expect_input_ids,
-             msg=f"Expected input_ids: '{self.expect_input_ids}', actual='{input_ids}'."
+             msg=f"Expected input_ids: `{self.expect_input_ids}`, actual=`{input_ids}`."
          )
 
     def test_tokenicer_decode(self):
@@ -69,5 +69,5 @@ class TestTokenicer(unittest.TestCase):
         self.assertEqual(
             self.example,
             example,
-            msg=f"Expected example: '{self.example}', actual='{example}'."
+            msg=f"Expected example: `{self.example}`, actual=`{example}`."
         )
