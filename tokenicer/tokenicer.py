@@ -171,7 +171,7 @@ class Tokenicer:
         exist, verify_json_path = self._verify_file_exist()
         if exist:
             logger.warning("The verification file already exists.")
-            return
+            return verify_json_path
 
         if prompts is None:
             raise ValueError("`prompts` cannot be None")
@@ -196,6 +196,7 @@ class Tokenicer:
             for item in results:
                 json.dump(item, f)
                 f.write('\n')
+        return verify_json_path
 
     def verify(self) -> bool:
         exist, verify_json_path = self._verify_file_exist()
@@ -223,7 +224,7 @@ class Tokenicer:
 
         if os.path.isfile(verify_json_path):
             return True, verify_json_path
-        return False, None
+        return False, verify_json_path
 
     def __getattr__(self, name):
         if hasattr(self.tokenizer, name):
