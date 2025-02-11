@@ -16,8 +16,8 @@ class VerifyMeta:
     validator: str
     url: str
 
-    def __init__(self, version, url):
-        self.validator = version
+    def __init__(self, validator, url):
+        self.validator = validator
         self.url = url
 
 
@@ -28,7 +28,7 @@ class VerifyConfig:
     def __init__(self, datasets: List[VerifyData], meta: VerifyMeta = None):
         if meta is None:
             from .version import __version__
-            meta = VerifyMeta(version=__version__, url='https://github.com/ModelCloud/Tokenicer')
+            meta = VerifyMeta(validator=f"tokenicer:{__version__}", url='https://github.com/ModelCloud/Tokenicer')
         self.meta = meta
         self.datasets = datasets
 
