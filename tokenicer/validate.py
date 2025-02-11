@@ -16,10 +16,10 @@
 
 import os
 import json
-from typing import Union, List
+from transformers import PreTrainedTokenizerBase
 from .util import config_path
-from .const import VERIFY_JSON_FILE_NAME, VERIFY_ENCODE_PARAMS, INPUT_KEY, TENSOR_KEY
-
+from .const import VERIFY_JSON_FILE_NAME, VERIFY_ENCODE_PARAMS, INPUT_KEY, TENSOR_KEY, VERIFY_DATASETS
+from .config import VerifyData, VerifyConfig, VerifyMeta
 
 def _verify_file_exist(tokenizer):
     path = config_path(tokenizer)
@@ -33,7 +33,7 @@ def _verify_file_exist(tokenizer):
     return False, verify_json_path
 
 
-def _save_verify(prompts: Union[str, List[str]], tokenizer):
+def _save_verify(tokenizer: PreTrainedTokenizerBase, enable_chat_template: bool = True):
     exist, verify_json_path = _verify_file_exist(tokenizer)
     if exist:
         import logging
@@ -41,45 +41,58 @@ def _save_verify(prompts: Union[str, List[str]], tokenizer):
         logger.warning("The verification file already exists.")
         return verify_json_path
 
-    if prompts is None:
-        raise ValueError("`prompts` cannot be None")
+    if enable_chat_template and tokenizer.chat_template is None:
+        raise ValueError('Tokenizer does not support chat template')
 
-    if not isinstance(prompts, str) and not isinstance(prompts, list):
-        raise ValueError(
-            f"Unsupported `prompts` type: Expected `str` or `List[str]`, actual = `{type(prompts)}`.")
-
-    if isinstance(prompts, str):
-        prompts = [prompts]
-
-    if len(prompts) == 0:
-        raise ValueError("len(prompts) == 0, `prompts` must be greater than 0")
+    prompts = []
+    if enable_chat_template:
+        for data in VERIFY_DATASETS:
+            message = [{"role": "user", "content": data}]
+            prompt = tokenizer.apply_chat_template(
+                message, add_generation_prompt=False, tokenize=False
+            ).rstrip()
+            prompts.append(prompt)
+    else:
+        prompts = VERIFY_DATASETS
 
     results = []
     for prompt in prompts:
         tokenized = tokenizer.encode_plus(prompt, **VERIFY_ENCODE_PARAMS)
-        jsonl = {INPUT_KEY: prompt, TENSOR_KEY: tokenized["input_ids"].tolist()}
-        results.append(jsonl)
+        output = tokenized["input_ids"].tolist()[0]
+        data = VerifyData(input=prompt, output=output)
+        results.append(data)
 
-    with open(verify_json_path, 'w') as f:
-        for item in results:
-            json.dump(item, f)
-            f.write('\n')
+    verify_dic = VerifyConfig(datasets=results).to_dict()
+
+    with open(verify_json_path, 'w', encoding='utf-8') as f:
+        json.dump(verify_dic, f, indent=4)
+        f.write('\n')
     return verify_json_path
 
 
-def _verify(tokenizer) -> bool:
+def _verify(tokenizer: PreTrainedTokenizerBase) -> bool:
     exist, verify_json_path = _verify_file_exist(tokenizer)
     if not exist:
         raise ValueError(f"The verification file does not exist, please call the `save_verify` API first")
 
-    with open(verify_json_path, 'r', encoding='utf-8') as file:
-        for line in file:
-            json_obj = json.loads(line)
+    with open(verify_json_path, 'r', encoding='utf-8') as f:
+        data = json.loads(f.read())
 
-            input_text = json_obj[INPUT_KEY]
-            tensor = json_obj[TENSOR_KEY]
+    meta_data = data['meta']
+    dataset_data = data['dataset']
 
-            tokenized = tokenizer.encode_plus(input_text, **VERIFY_ENCODE_PARAMS)
-            if tensor != tokenized["input_ids"].tolist():
-                return False
+    meta = VerifyMeta(validator=meta_data['validator'], url=meta_data['url'])
+    datasets = [
+        VerifyData(input=d['input'], output=d['output'], format=d['format'])
+        for d in dataset_data
+    ]
+
+    config = VerifyConfig(datasets=datasets, meta=meta)
+
+    for verify_data in config.datasets:
+        input = verify_data.input
+        tokenized = tokenizer.encode_plus(input, **VERIFY_ENCODE_PARAMS)["input_ids"].tolist()[0]
+        if verify_data.output != tokenized:
+            return False
+
     return True

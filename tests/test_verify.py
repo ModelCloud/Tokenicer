@@ -24,12 +24,7 @@ class TestVerify(unittest.TestCase):
     def test_verify(self):
         model_path = "/monster/data/model/Qwen2.5-0.5B-Instruct"
         tokenicer = Tokenicer.load(model_path)
-        messages = [{"role": "user", "content": "Test Case String"}, {"role": "assistant", "content": "Test"}]
-        prompts = tokenicer.apply_chat_template(
-            messages, add_generation_prompt=False, tokenize=False
-        ).rstrip()
-
-        verify_json_path = tokenicer.save_verify(prompts=prompts)
+        verify_json_path = tokenicer.save_verify()
         result = os.path.isfile(verify_json_path)
         self.assertTrue(result, f"Save verify file failed: {verify_json_path} does not exist.")
 

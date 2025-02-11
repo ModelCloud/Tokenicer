@@ -159,8 +159,8 @@ class Tokenicer:
             model_config.eos_token = self.tokenizer.eos_token
             model_config.eos_token_id = self.tokenizer.eos_token_id
 
-    def save_verify(self, prompts: Union[str, List[str]]):
-        return _save_verify(prompts, self.tokenizer)
+    def save_verify(self, enable_chat_template: bool = True):
+        return _save_verify(tokenizer=self.tokenizer, enable_chat_template=enable_chat_template)
 
     def verify(self) -> bool:
         return _verify(self.tokenizer)
