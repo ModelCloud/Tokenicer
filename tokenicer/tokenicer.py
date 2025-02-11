@@ -93,6 +93,8 @@ class Tokenicer:
                     f"Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
+        self.auto_fix_model_config(model_config)
+
         pad_token_id = model_config.pad_token_id
 
         if pad_token_id is None or pad_token_id in [model_config.bos_token_id, model_config.eos_token_id]:
@@ -146,6 +148,15 @@ class Tokenicer:
                 pad_token_id = model_config.eos_token_id
 
         return pad_token_id
+
+    def auto_fix_model_config(self, model_config):
+        if model_config.bos_token_id is None and self.tokenizer.bos_token_id is not None:
+            model_config.bos_token = self.tokenizer.bos_token
+            model_config.bos_token_id = self.tokenizer.bos_token_id
+
+        if model_config.eos_token_id is None and self.tokenizer.eos_token_id is not None:
+            model_config.eos_token = self.tokenizer.eos_token
+            model_config.eos_token_id = self.tokenizer.eos_token_id
 
     def __getattr__(self, name):
         if hasattr(self.tokenizer, name):
