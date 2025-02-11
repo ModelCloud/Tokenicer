@@ -133,6 +133,11 @@ class Tokenicer:
                 pad_token_id = model_config.eos_token_id[0]
             else:
                 pad_token_id = model_config.eos_token_id
+
+        # Check tokenizer
+        if pad_token_id is None and self.tokenizer.eos_token_id is not None:
+            pad_token_id = self.tokenizer.eos_token_id
+
         return pad_token_id
 
     def __getattr__(self, name):
