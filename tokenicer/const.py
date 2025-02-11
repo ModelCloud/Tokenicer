@@ -42,6 +42,9 @@ INPUT_KEY = "input"
 TENSOR_KEY = "tensor"
 
 VERIFY_DATASETS = [
+        "Sure! I'd be happy to help. What kind of writing prompt are you looking for?",
+        "Certainly! A comma (,) is used to separate items in a list, e.g., 'I bought apples, bananas, and oranges.' A semicolon (;) links related independent clauses, e.g., 'I have a meeting tomorrow; I need to prepare.' A colon (:) introduces a list or explanation, e.g., 'Here are the items you need: pen, paper, and ink.'",
+        "Let's break it down:\n\n1. 3.14159265359 + 2.71828182846 = 5.85987448205\n2. 5.6 * 2.3 = 12.88\n3. The square root of 123.456 is approximately 11.1111047355\n\nWould you like to explore more complex calculations? I can also work with exponents (e.g., 2^10 or 5.1^3.2).",
         "",
         "",
         "",
@@ -49,28 +52,4 @@ VERIFY_DATASETS = [
         "",
         "",
         "",
-        "",
-        "",
-        "",
-]
-
-VERIFY_CHAT_TEMPLAT_DATASETS = [
-        [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Can you help me with a writing prompt?"},
-                {"role": "assistant", "content": "Sure! I'd be happy to help. What kind of writing prompt are you looking for?"}
-        ],
-        [
-                {"role": "system", "content": "Please provide a comprehensive response, covering various aspects—syntax, grammar, punctuation, etc. (We can discuss in detail.)"},
-                {"role": "user", "content": "What is the difference between commas, semicolons, and colons? Can you give me some examples?"},
-                {"role": "assistant", "content": "Certainly! A comma (,) is used to separate items in a list, e.g., 'I bought apples, bananas, and oranges.' A semicolon (;) links related independent clauses, e.g., 'I have a meeting tomorrow; I need to prepare.' A colon (:) introduces a list or explanation, e.g., 'Here are the items you need: pen, paper, and ink.'"}
-        ],
-        [{"role": "system", "content": ""}, {"role": "user", "content": ""}, {"role": "assistant", "content": ""}],
-        [{"role": "system", "content": ""}, {"role": "user", "content": ""}, {"role": "assistant", "content": ""}],
-        [{"role": "system", "content": ""}, {"role": "user", "content": ""}, {"role": "assistant", "content": ""}],
-        [{"role": "system", "content": ""}, {"role": "user", "content": ""}, {"role": "assistant", "content": ""}],
-        [{"role": "system", "content": ""}, {"role": "user", "content": ""}, {"role": "assistant", "content": ""}],
-        [{"role": "system", "content": ""}, {"role": "user", "content": ""}, {"role": "assistant", "content": ""}],
-        [{"role": "system", "content": ""}, {"role": "user", "content": ""}, {"role": "assistant", "content": ""}],
-        [{"role": "system", "content": ""}, {"role": "user", "content": ""}, {"role": "assistant", "content": ""}],
 ]
