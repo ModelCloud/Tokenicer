@@ -166,11 +166,11 @@ class Tokenicer:
             model_config.eos_token = self.tokenizer.eos_token
             model_config.eos_token_id = self.tokenizer.eos_token_id
 
-    def save(self, save_dir: Union[str, os.PathLike], use_chat_template: bool = True):
+    def save(self, save_dir: Union[str, os.PathLike], use_chat_template: bool = True) -> str:
         return _save(save_dir=save_dir, tokenizer=self.tokenizer, use_chat_template=use_chat_template)
 
-    def verify(self, save_directory: Union[str, os.PathLike] = None) -> bool:
-        return _verify(self.tokenizer, save_directory=save_directory)
+    def verify(self, save_dir: Union[str, os.PathLike] = None) -> bool:
+        return _verify(self.tokenizer, save_dir=save_dir)
 
     def __getattr__(self, name):
         if hasattr(self.tokenizer, name):

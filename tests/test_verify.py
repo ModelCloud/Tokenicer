@@ -33,7 +33,7 @@ class TestVerify(unittest.TestCase):
             result = os.path.isfile(verify_json_path)
             self.assertTrue(result, f"Save verify file failed: {verify_json_path} does not exist.")
 
-            result = tokenicer.verify(verify_json_path)
+            result = tokenicer.verify(tmpdir)
             self.assertTrue(result, f"Verification failed")
 
 

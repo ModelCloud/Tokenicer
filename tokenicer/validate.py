@@ -47,7 +47,10 @@ def _save(
         return verify_json_path
 
     if use_chat_template and tokenizer.chat_template is None:
-        raise ValueError("Tokenizer does not support chat template.")
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("Tokenizer does not support chat template.")
+        use_chat_template = False
 
     VERIFY_DATASETS.append(all_special_characters())
 
@@ -77,11 +80,11 @@ def _save(
     return verify_json_path
 
 
-def _verify(tokenizer: PreTrainedTokenizerBase, save_directory: Optional[Union[str, os.PathLike]] = None) -> bool:
+def _verify(tokenizer: PreTrainedTokenizerBase, save_dir: Optional[Union[str, os.PathLike]] = None) -> bool:
     exist = False
 
-    if save_directory is not None:
-        verify_json_path = os.path.join(save_directory, VERIFY_JSON_FILE_NAME)
+    if save_dir is not None:
+        verify_json_path = os.path.join(save_dir, VERIFY_JSON_FILE_NAME)
         exist = isfile(verify_json_path)
 
     if not exist:
