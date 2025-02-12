@@ -33,8 +33,8 @@ class TestValidate(unittest.TestCase):
             result = os.path.isfile(validate_json_path)
             self.assertTrue(result, f"Save validate file failed: {validate_json_path} does not exist.")
 
-            result = tokenicer.validate(tmpdir)
-            self.assertTrue(result, f"Validate failed")
+            validate = tokenicer.validate(tmpdir)
+            self.assertTrue(validate, f"Expected validate='True' but got '{validate}'.")
 
 
 
