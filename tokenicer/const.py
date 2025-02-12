@@ -74,5 +74,8 @@ VERIFY_DATASETS = [
         "Chào bạn! Tôi là một trí tuệ nhân tạo, rất vui được gặp bạn. Bạn cần giúp đỡ gì hôm nay?",
         # Polish
         "Cześć! Jak się masz? Mam nadzieję, że wszystko u Ciebie w porządku. Jeśli chcesz porozmawiać lub masz jakieś pytania, śmiało pisz!",
-        #
+        # Japanese
+        "今日はとても良い天気ですね。朝から青空が広がっていて、散歩に出かけるのにぴったりな日です。最近、忙しくてなかなか外に出る時間がなかったので、今日はゆっくりと自然の中でリラックスしたいと思っています。",
+        # Korean
+        "오늘은 정말 좋은 날씨네요. 아침부터 맑은 하늘이 펼쳐져 있고, 산책을 하기에 딱 좋은 날이에요. 요즘 바빠서 밖에 나갈 시간이 없었는데, 오늘은 자연 속에서 여유롭게 시간을 보내고 싶어요."
 ]
