@@ -17,9 +17,11 @@
 import os
 import json
 from transformers import PreTrainedTokenizerBase
-from .util import config_path, all_special_characters
+from .util import config_path, all_special_characters, isfile
 from .const import VERIFY_JSON_FILE_NAME, VERIFY_ENCODE_PARAMS, VERIFY_DATASETS
-from .config import VerifyData, VerifyConfig, VerifyMeta
+from .config import VerifyData, VerifyConfig
+from typing import Union, Optional
+
 
 def _verify_file_exist(tokenizer):
     path = config_path(tokenizer)
@@ -27,27 +29,29 @@ def _verify_file_exist(tokenizer):
         raise ValueError("Can not retrieve config path from the provided `pretrained_model_name_or_path`.")
 
     verify_json_path = os.path.join(path, VERIFY_JSON_FILE_NAME)
-
-    if os.path.isfile(verify_json_path):
-        return True, verify_json_path
-    return False, verify_json_path
+    return isfile(verify_json_path), verify_json_path
 
 
-def _save_verify(tokenizer: PreTrainedTokenizerBase, enable_chat_template: bool = True):
-    exist, verify_json_path = _verify_file_exist(tokenizer)
+def _save(
+        save_directory: Union[str, os.PathLike],
+        tokenizer: PreTrainedTokenizerBase,
+        use_chat_template: bool = True
+    ):
+    verify_json_path = os.path.join(save_directory, VERIFY_JSON_FILE_NAME)
+    exist = isfile(verify_json_path)
     if exist:
         import logging
         logger = logging.getLogger(__name__)
         logger.warning("The verification file already exists.")
         return verify_json_path
 
-    if enable_chat_template and tokenizer.chat_template is None:
+    if use_chat_template and tokenizer.chat_template is None:
         raise ValueError('Tokenizer does not support chat template')
 
     VERIFY_DATASETS.append(all_special_characters())
 
     prompts = []
-    if enable_chat_template:
+    if use_chat_template:
         for data in VERIFY_DATASETS:
             message = [{"role": "user", "content": data}]
             prompt = tokenizer.apply_chat_template(
@@ -72,24 +76,26 @@ def _save_verify(tokenizer: PreTrainedTokenizerBase, enable_chat_template: bool 
     return verify_json_path
 
 
-def _verify(tokenizer: PreTrainedTokenizerBase) -> bool:
-    exist, verify_json_path = _verify_file_exist(tokenizer)
+def _verify(tokenizer: PreTrainedTokenizerBase, verify_file_path: Optional[Union[str, os.PathLike]] = None) -> bool:
+    exist = False
+
+    if verify_file_path is not None:
+        exist = isfile(verify_file_path)
+
     if not exist:
-        raise ValueError(f"The verification file does not exist, please call the `save_verify` API first")
+        exist, verify_json_path = _verify_file_exist(tokenizer)
+        if not exist:
+            raise ValueError(f"The verification file does not exist, please call the `save_verify` API first")
+    else:
+        verify_json_path = verify_file_path
 
     with open(verify_json_path, 'r', encoding='utf-8') as f:
         data = json.loads(f.read())
 
-    meta_data = data['meta']
-    dataset_data = data['dataset']
+    config = VerifyConfig.from_dict(data)
 
-    meta = VerifyMeta(validator=meta_data['validator'], url=meta_data['url'])
-    datasets = [
-        VerifyData(input=d['input'], output=d['output'], format=d['format'])
-        for d in dataset_data
-    ]
-
-    config = VerifyConfig(datasets=datasets, meta=meta)
+    if config is None or len(config.datasets) == 0:
+        raise ValueError(f"Initialization verification data failed, please check {verify_json_path}")
 
     for verify_data in config.datasets:
         input = verify_data.input

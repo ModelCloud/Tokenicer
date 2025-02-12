@@ -35,7 +35,7 @@ MODEL_PAD_TOKEN_MAP = {
         "mpt": TOKEN_TUPLE(token='<|padding|>', token_id=1)
 }
 
-VERIFY_JSON_FILE_NAME = "tokenizer_verify.jsonl"
+VERIFY_JSON_FILE_NAME = "tokenizer_verify.json"
 VERIFY_ENCODE_PARAMS = {"return_tensors": "pt", "add_special_tokens": False}
 
 VERIFY_DATASETS = [

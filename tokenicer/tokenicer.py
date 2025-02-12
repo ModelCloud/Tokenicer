@@ -14,12 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import logging
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Tuple
 from transformers import PreTrainedTokenizerBase, PreTrainedModel, AutoTokenizer
 from .util import candidate_id, config_path, auto_config
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
-from .validate import _save_verify, _verify
+from .validate import _save, _verify
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -159,11 +160,21 @@ class Tokenicer:
             model_config.eos_token = self.tokenizer.eos_token
             model_config.eos_token_id = self.tokenizer.eos_token_id
 
-    def save_verify(self, enable_chat_template: bool = True):
-        return _save_verify(tokenizer=self.tokenizer, enable_chat_template=enable_chat_template)
+    def save(self, save_directory: Union[str, os.PathLike], use_chat_template: bool = True):
+        return _save(save_directory=save_directory, tokenizer=self.tokenizer, use_chat_template=use_chat_template)
 
-    def verify(self) -> bool:
-        return _verify(self.tokenizer)
+    def verify(self, verify_file_path: Optional[Union[str, os.PathLike]] = None) -> bool:
+        return _verify(self.tokenizer, verify_file_path=verify_file_path)
+
+    # Override tokenizer save_pretrained
+    def save_pretrained(
+            self,
+            save_directory: Union[str, os.PathLike],
+            use_chat_template: bool = True,
+            **kwargs,
+    ) -> Tuple[str]:
+        self.save(save_directory=save_directory, use_chat_template=use_chat_template)
+        return self.tokenizer.save_pretrained(save_directory=save_directory, **kwargs)
 
     def __getattr__(self, name):
         if hasattr(self.tokenizer, name):

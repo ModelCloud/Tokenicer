@@ -14,9 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import string
 from typing import Union, List, Optional
 from transformers import AutoConfig, PretrainedConfig
-import string
 
 
 def candidate_ids(token_list: List[Union[str, int]], vocab: dict) -> List[Optional[int]]:
@@ -66,3 +67,6 @@ def all_special_characters():
     # Return the combined string
     return all_special_chars
 
+
+def isfile(path):
+    return os.path.isfile(path)
