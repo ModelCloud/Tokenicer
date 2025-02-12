@@ -170,6 +170,10 @@ class Tokenicer:
     def validate(self, save_dir: Union[str, os.PathLike] = None) -> bool:
         return _validate(self.tokenizer, save_dir=save_dir)
 
+    def save_pretrained(self, save_directory: Union[str, os.PathLike], use_chat_template: bool = True, **kwargs,):
+        self.save(save_dir=save_directory, use_chat_template=use_chat_template)
+        return self.tokenizer.save_pretrained(save_directory=save_directory, **kwargs)
+
     def __getattr__(self, name):
         if hasattr(self.tokenizer, name):
             return getattr(self.tokenizer, name)
