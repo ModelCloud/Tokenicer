@@ -22,18 +22,12 @@ from typing import Union, Optional
 from .util import config_path, all_special_characters, isfile
 from .const import VERIFY_JSON_FILE_NAME, VERIFY_ENCODE_PARAMS, VERIFY_DATASETS
 from .config import VerifyData, VerifyConfig
-from .exception import (
-    VerificationFileNotFoundError,
-    VerificationInitializationError,
-    ChatTemplateError,
-    ModelCofnfigNotFoundError
-)
 
 
 def _verify_file_exist(tokenizer):
     path = config_path(tokenizer)
     if path is None:
-        raise ModelCofnfigNotFoundError()
+        raise ValueError("Can not retrieve config path from the provided `pretrained_model_name_or_path`.")
 
     verify_json_path = os.path.join(path, VERIFY_JSON_FILE_NAME)
     return isfile(verify_json_path), verify_json_path
@@ -53,7 +47,7 @@ def _save(
         return verify_json_path
 
     if use_chat_template and tokenizer.chat_template is None:
-        raise ChatTemplateError()
+        raise ValueError("Tokenizer does not support chat template.")
 
     VERIFY_DATASETS.append(all_special_characters())
 
@@ -92,7 +86,7 @@ def _verify(tokenizer: PreTrainedTokenizerBase, verify_file_path: Optional[Union
     if not exist:
         exist, verify_json_path = _verify_file_exist(tokenizer)
         if not exist:
-            raise VerificationFileNotFoundError()
+            raise ValueError("The verification file does not exist, please call the `save` API first.")
     else:
         verify_json_path = verify_file_path
 
@@ -102,7 +96,7 @@ def _verify(tokenizer: PreTrainedTokenizerBase, verify_file_path: Optional[Union
     config = VerifyConfig.from_dict(data)
 
     if config is None or len(config.datasets) == 0:
-        raise VerificationInitializationError(verify_json_path=verify_json_path)
+        raise ValueError(f"Initialization verification data failed, please check {verify_json_path}.")
 
     for verify_data in config.datasets:
         input = verify_data.input

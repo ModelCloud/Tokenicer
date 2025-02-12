@@ -20,7 +20,7 @@ from typing import Union, List, Optional, Tuple
 from transformers import PreTrainedTokenizerBase, PreTrainedModel, AutoTokenizer
 from .util import candidate_id, config_path, auto_config
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
-from .validate import _save, _verify
+from .validate import _save, _verify, _verify_file_exist
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -65,6 +65,10 @@ class Tokenicer:
             )
 
         tokenicer.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
+
+        exist, _ = _verify_file_exist(tokenizer)
+        if exist:
+            tokenicer.verify()
 
         return tokenicer
 
