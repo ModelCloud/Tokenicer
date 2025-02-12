@@ -21,7 +21,7 @@ from typing import Union, Optional
 
 from .util import config_path, all_special_characters, isfile
 from .const import VERIFY_JSON_FILE_NAME, VERIFY_ENCODE_PARAMS, VERIFY_DATASETS
-from .config import VerifyData, VerifyConfig
+from .config import ValidateConfig, ValidateData
 
 
 def _verify_file_exist(tokenizer):
@@ -71,13 +71,13 @@ def _save(
     for prompt in prompts:
         tokenized = tokenizer.encode_plus(prompt, **VERIFY_ENCODE_PARAMS)
         output = tokenized["input_ids"].tolist()[0]
-        data = VerifyData(input=prompt, output=output)
+        data = ValidateData(input=prompt, output=output)
         results.append(data)
 
-    verify_dic = VerifyConfig(datasets=results).to_dict()
+    validate_dic = ValidateConfig(data=results).to_dict()
 
     with open(verify_json_path, 'w', encoding='utf-8') as f:
-        json.dump(verify_dic, f, indent=4)
+        json.dump(validate_dic, f, indent=4)
         f.write('\n')
     return verify_json_path
 
@@ -97,12 +97,12 @@ def _verify(tokenizer: PreTrainedTokenizerBase, save_dir: Optional[Union[str, os
     with open(verify_json_path, 'r', encoding='utf-8') as f:
         data = json.loads(f.read())
 
-    config = VerifyConfig.from_dict(data)
+    config = ValidateConfig.from_dict(data)
 
-    if config is None or len(config.datasets) == 0:
+    if config is None or len(config.data) == 0:
         raise ValueError(f"Initialization verification data failed, please check {verify_json_path}.")
 
-    for verify_data in config.datasets:
+    for verify_data in config.data:
         input = verify_data.input
         tokenized = tokenizer.encode_plus(input, **VERIFY_ENCODE_PARAMS)["input_ids"].tolist()[0]
         if verify_data.output != tokenized:

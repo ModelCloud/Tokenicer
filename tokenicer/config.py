@@ -1,87 +1,75 @@
-from typing import List, Optional
-from dataclasses import dataclass, field
+from typing import List, Optional, Union, Any, Dict
+from dataclasses import dataclass
+from enum import Enum
 
-class ValidateDataFormat(str, Enum):
-    "simple": SIMPLE
 
-@dataclass
-class VerifyData:
-    format: ValidateDataFormat = ValidateDataFormat.SIMPLE, 
-    input: Untion[str, Any] = None
-    output: List[int] = field(default_factory=list) # what is default_factory?
-
-    def __init__(self, input: Union[str, Any], output: List[int], format: ValidateDataFormat = ValidateDataFormat.SIMPLE):
-        self.format = format
-        self.input = input
-        self.output = output
+class ValidateDataFormat(Enum):
+    SIMPLE = "simple"
 
 
 @dataclass
-class VerifyMeta:
-    validator: str
-    url: str
+class ValidateData:
+    format: ValidateDataFormat = ValidateDataFormat.SIMPLE
+    input: Union[str, Any] = None
+    output: List[int] = None
 
-    def __init__(self, validator, url):
-        self.validator = validator
-        self.url = url
+    def __post_init__(self):
+        if self.input is None:
+            self.input = []
+
+        if self.output is None:
+            self.output = []
 
 
 @dataclass
-class VerifyConfig:
-    meta: Optional[VerifyMeta] = None
-    datasets: List[VerifyData] = field(default_factory=list)
+class ValidateMeta:
+    validator: str = None
+    uri: str = None
 
-    def __init__(self, datasets: List[VerifyData], meta: VerifyMeta = None):
-        if meta is None:
+    def __post_init__(self):
+        if self.validator is None:
             from .version import __version__
-            meta = VerifyMeta(validator=f"tokenicer:{__version__}", url='https://github.com/ModelCloud/Tokenicer')
-        self.meta = meta
-        self.datasets = datasets
+            self.validator = f"tokenicer:{__version__}"
+
+        if self.uri is None:
+            self.uri = "https://github.com/ModelCloud/Tokenicer"
+
+
+@dataclass
+class ValidateConfig:
+    meta: Optional[ValidateMeta] = None
+    data: List[ValidateData] = None
+
+    def __post_init__(self):
+        if self.meta is None:
+           self.meta = ValidateMeta()
+
+        if self.data is None:
+            self.data = []
 
     def to_dict(self):
         dataset_dict = [
             {
-                'format': data.format,
+                'format': data.format.value,
                 'input': data.input,
                 'output': data.output,
-            } for data in self.datasets
+            } for data in self.data
         ]
 
         meta_dict = {
             'validator': self.meta.validator,
-            'url': self.meta.url
+            'uri': self.meta.uri
         }
 
         return {
             'meta': meta_dict,
-            'datasets': dataset_dict
+            'data': dataset_dict
         }
 
     @classmethod
-    def from_dict(cls, data: dict):
-        try:
-            datasets_data = data.get('datasets')
-            datasets = []
-            if datasets_data is not None and isinstance(datasets_data, list):
-                for data_item in datasets_data:
-                    if isinstance(data_item, dict):
-                        input = data_item.get('input')
-                        output = data_item.get('output')
-                        format = data_item.get('format')
-                        if input is not None and output is not None and format is not None:
-                            datasets.append(VerifyData(input=input, output=output, format=format))
-
-            meta_data = data.get('meta')
-            meta = None
-
-            if meta_data is not None:
-                validator = meta_data.get('validator')
-                url = meta_data.get('url')
-
-                if validator is not None and url is not None:
-                    meta = VerifyMeta(validator=validator, url=url)
-
-            return cls(datasets=datasets, meta=meta)
-
-        except Exception as e:
-            return None
+    def from_dict(cls, data: Dict):
+        meta_data = data.get("meta", {})
+        data_list = data.get("data", [])
+        meta = ValidateMeta(**meta_data) if meta_data else None
+        validate_data = [ValidateData(**item) for item in data_list]
+        return cls(meta=meta, data=validate_data)
