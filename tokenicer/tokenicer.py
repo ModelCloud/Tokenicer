@@ -20,7 +20,7 @@ from typing import Union, List, Optional, Tuple
 from transformers import PreTrainedTokenizerBase, PreTrainedModel, AutoTokenizer
 from .util import candidate_id, config_path, auto_config
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
-from .validate import _save, _verify, _verify_file_exist
+from .validate import _save, _validate, _validate_file_exist
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -66,9 +66,9 @@ class Tokenicer:
 
         tokenicer.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
 
-        exist, _ = _verify_file_exist(tokenizer)
-        if exist and tokenicer.verify():
-            logger.info("Tokenicer verification successful!")
+        exist, _ = _validate_file_exist(tokenizer)
+        if exist and tokenicer.validate():
+            logger.info("Tokenicer validate successful!")
 
         return tokenicer
 
@@ -167,8 +167,8 @@ class Tokenicer:
     def save(self, save_dir: Union[str, os.PathLike], use_chat_template: bool = True) -> str:
         return _save(save_dir=save_dir, tokenizer=self.tokenizer, use_chat_template=use_chat_template)
 
-    def verify(self, save_dir: Union[str, os.PathLike] = None) -> bool:
-        return _verify(self.tokenizer, save_dir=save_dir)
+    def validate(self, save_dir: Union[str, os.PathLike] = None) -> bool:
+        return _validate(self.tokenizer, save_dir=save_dir)
 
     def __getattr__(self, name):
         if hasattr(self.tokenizer, name):

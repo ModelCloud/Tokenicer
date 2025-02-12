@@ -17,24 +17,24 @@
 import os
 import unittest
 from tokenicer import Tokenicer
-from tokenicer.const import VERIFY_JSON_FILE_NAME
+from tokenicer.const import VALIDATE_JSON_FILE_NAME
 import tempfile
 
 
-class TestVerify(unittest.TestCase):
+class TestValidate(unittest.TestCase):
 
-    def test_save(self):
+    def test_validate(self):
         model_path = "/monster/data/model/Qwen2.5-0.5B-Instruct"
         tokenicer = Tokenicer.load(model_path)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tokenicer.save(tmpdir)
-            verify_json_path = os.path.join(tmpdir, VERIFY_JSON_FILE_NAME)
-            result = os.path.isfile(verify_json_path)
-            self.assertTrue(result, f"Save verify file failed: {verify_json_path} does not exist.")
+            validate_json_path = os.path.join(tmpdir, VALIDATE_JSON_FILE_NAME)
+            result = os.path.isfile(validate_json_path)
+            self.assertTrue(result, f"Save validate file failed: {validate_json_path} does not exist.")
 
-            result = tokenicer.verify(tmpdir)
-            self.assertTrue(result, f"Verification failed")
+            result = tokenicer.validate(tmpdir)
+            self.assertTrue(result, f"Validate failed")
 
 
 

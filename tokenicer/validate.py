@@ -20,17 +20,17 @@ from transformers import PreTrainedTokenizerBase
 from typing import Union, Optional
 
 from .util import config_path, all_special_characters, isfile
-from .const import VERIFY_JSON_FILE_NAME, VERIFY_ENCODE_PARAMS, VERIFY_DATASETS
+from .const import VALIDATE_JSON_FILE_NAME, VALIDATE_ENCODE_PARAMS, VALIDATE_DATASETS
 from .config import ValidateConfig, ValidateData
 
 
-def _verify_file_exist(tokenizer):
+def _validate_file_exist(tokenizer):
     path = config_path(tokenizer)
     if path is None:
         raise ValueError("Can not retrieve config path from the provided `pretrained_model_name_or_path`.")
 
-    verify_json_path = os.path.join(path, VERIFY_JSON_FILE_NAME)
-    return isfile(verify_json_path), verify_json_path
+    validate_json_path = os.path.join(path, VALIDATE_JSON_FILE_NAME)
+    return isfile(validate_json_path), validate_json_path
 
 
 def _save(
@@ -40,13 +40,13 @@ def _save(
     ):
     os.makedirs(save_dir, exist_ok=True)
 
-    verify_json_path = os.path.join(save_dir, VERIFY_JSON_FILE_NAME)
-    exist = isfile(verify_json_path)
+    validate_json_path = os.path.join(save_dir, VALIDATE_JSON_FILE_NAME)
+    exist = isfile(validate_json_path)
     if exist:
         import logging
         logger = logging.getLogger(__name__)
-        logger.warning("The verification file already exists.")
-        return verify_json_path
+        logger.warning(f"Validate file:{validate_json_path} already exists.")
+        return validate_json_path
 
     if use_chat_template and tokenizer.chat_template is None:
         import logging
@@ -54,58 +54,58 @@ def _save(
         logger.warning("Tokenizer does not support chat template.")
         use_chat_template = False
 
-    VERIFY_DATASETS.append(all_special_characters())
+    VALIDATE_DATASETS.append(all_special_characters())
 
     prompts = []
     if use_chat_template:
-        for data in VERIFY_DATASETS:
+        for data in VALIDATE_DATASETS:
             message = [{"role": "user", "content": data}]
             prompt = tokenizer.apply_chat_template(
                 message, add_generation_prompt=False, tokenize=False
             ).rstrip()
             prompts.append(prompt)
     else:
-        prompts = VERIFY_DATASETS
+        prompts = VALIDATE_DATASETS
 
     results = []
     for prompt in prompts:
-        tokenized = tokenizer.encode_plus(prompt, **VERIFY_ENCODE_PARAMS)
+        tokenized = tokenizer.encode_plus(prompt, **VALIDATE_ENCODE_PARAMS)
         output = tokenized["input_ids"].tolist()[0]
         data = ValidateData(input=prompt, output=output)
         results.append(data)
 
     validate_dic = ValidateConfig(data=results).to_dict()
 
-    with open(verify_json_path, 'w', encoding='utf-8') as f:
+    with open(validate_json_path, 'w', encoding='utf-8') as f:
         json.dump(validate_dic, f, indent=4)
         f.write('\n')
-    return verify_json_path
+    return validate_json_path
 
 
-def _verify(tokenizer: PreTrainedTokenizerBase, save_dir: Optional[Union[str, os.PathLike]] = None) -> bool:
+def _validate(tokenizer: PreTrainedTokenizerBase, save_dir: Optional[Union[str, os.PathLike]] = None) -> bool:
     exist = False
 
     if save_dir is not None:
-        verify_json_path = os.path.join(save_dir, VERIFY_JSON_FILE_NAME)
-        exist = isfile(verify_json_path)
+        validate_json_path = os.path.join(save_dir, VALIDATE_JSON_FILE_NAME)
+        exist = isfile(validate_json_path)
 
     if not exist:
-        exist, verify_json_path = _verify_file_exist(tokenizer)
+        exist, validate_json_path = _validate_file_exist(tokenizer)
         if not exist:
-            raise ValueError("The verification file does not exist, please call the `save` API first.")
+            raise ValueError("Validate file does not exist, please call the `save()` API first.")
 
-    with open(verify_json_path, 'r', encoding='utf-8') as f:
+    with open(validate_json_path, 'r', encoding='utf-8') as f:
         data = json.loads(f.read())
 
     config = ValidateConfig.from_dict(data)
 
     if config is None or len(config.data) == 0:
-        raise ValueError(f"Initialization verification data failed, please check {verify_json_path}.")
+        raise ValueError(f"Init validate data failed, please check {validate_json_path}.")
 
-    for verify_data in config.data:
-        input = verify_data.input
-        tokenized = tokenizer.encode_plus(input, **VERIFY_ENCODE_PARAMS)["input_ids"].tolist()[0]
-        if verify_data.output != tokenized:
+    for data in config.data:
+        input = data.input
+        tokenized = tokenizer.encode_plus(input, **VALIDATE_ENCODE_PARAMS)["input_ids"].tolist()[0]
+        if data.output != tokenized:
             return False
 
     return True

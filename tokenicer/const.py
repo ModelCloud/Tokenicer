@@ -35,10 +35,10 @@ MODEL_PAD_TOKEN_MAP = {
         "mpt": TOKEN_TUPLE(token='<|padding|>', token_id=1)
 }
 
-VERIFY_JSON_FILE_NAME = "tokenizer_verify.json"
-VERIFY_ENCODE_PARAMS = {"return_tensors": "pt", "add_special_tokens": False}
+VALIDATE_JSON_FILE_NAME = "tokenizer_validate.json"
+VALIDATE_ENCODE_PARAMS = {"return_tensors": "pt", "add_special_tokens": False}
 
-VERIFY_DATASETS = [
+VALIDATE_DATASETS = [
         # English
         "Sure! I'd be happy to help. What kind of writing prompt are you looking for?",
         "Certainly! A comma (,) is used to separate items in a list, e.g., 'I bought apples, bananas, and oranges.' A semicolon (;) links related independent clauses, e.g., 'I have a meeting tomorrow; I need to prepare.' A colon (:) introduces a list or explanation, e.g., 'Here are the items you need: pen, paper, and ink.'",
