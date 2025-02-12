@@ -56,8 +56,6 @@ class Tokenicer:
             raise ValueError(
                 f"Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
 
-
-
         tokenicer.model_config = auto_config(path, trust_remote_code)
 
         if tokenicer.model_config is None:
@@ -69,8 +67,8 @@ class Tokenicer:
         tokenicer.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
 
         exist, _ = _verify_file_exist(tokenizer)
-        if exist:
-            tokenicer.verify()
+        if exist and tokenicer.verify():
+            logger.info("Tokenicer verification successful!")
 
         return tokenicer
 
