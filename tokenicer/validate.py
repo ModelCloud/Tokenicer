@@ -77,18 +77,17 @@ def _save(
     return verify_json_path
 
 
-def _verify(tokenizer: PreTrainedTokenizerBase, verify_file_path: Optional[Union[str, os.PathLike]] = None) -> bool:
+def _verify(tokenizer: PreTrainedTokenizerBase, save_directory: Optional[Union[str, os.PathLike]] = None) -> bool:
     exist = False
 
-    if verify_file_path is not None:
+    if save_directory is not None:
+        verify_file_path = os.path.join(save_directory, VERIFY_JSON_FILE_NAME)
         exist = isfile(verify_file_path)
 
     if not exist:
         exist, verify_json_path = _verify_file_exist(tokenizer)
         if not exist:
             raise ValueError("The verification file does not exist, please call the `save` API first.")
-    else:
-        verify_json_path = verify_file_path
 
     with open(verify_json_path, 'r', encoding='utf-8') as f:
         data = json.loads(f.read())

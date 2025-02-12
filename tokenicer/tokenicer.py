@@ -167,8 +167,8 @@ class Tokenicer:
     def save(self, save_directory: Union[str, os.PathLike], use_chat_template: bool = True):
         return _save(save_directory=save_directory, tokenizer=self.tokenizer, use_chat_template=use_chat_template)
 
-    def verify(self, verify_file_path: Optional[Union[str, os.PathLike]] = None) -> bool:
-        return _verify(self.tokenizer, verify_file_path=verify_file_path)
+    def verify(self, save_directory: Union[str, os.PathLike] = None) -> bool:
+        return _verify(self.tokenizer, save_directory=save_directory)
 
     # Override tokenizer save_pretrained
     def save_pretrained(
