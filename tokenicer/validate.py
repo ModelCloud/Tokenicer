@@ -17,16 +17,23 @@
 import os
 import json
 from transformers import PreTrainedTokenizerBase
+from typing import Union, Optional
+
 from .util import config_path, all_special_characters, isfile
 from .const import VERIFY_JSON_FILE_NAME, VERIFY_ENCODE_PARAMS, VERIFY_DATASETS
 from .config import VerifyData, VerifyConfig
-from typing import Union, Optional
+from .exception import (
+    VerificationFileNotFoundError,
+    VerificationInitializationError,
+    ChatTemplateError,
+    ModelCofnfigNotFoundError
+)
 
 
 def _verify_file_exist(tokenizer):
     path = config_path(tokenizer)
     if path is None:
-        raise ValueError("Can not retrieve config path from the provided `pretrained_model_name_or_path`.")
+        raise ModelCofnfigNotFoundError()
 
     verify_json_path = os.path.join(path, VERIFY_JSON_FILE_NAME)
     return isfile(verify_json_path), verify_json_path
@@ -46,7 +53,7 @@ def _save(
         return verify_json_path
 
     if use_chat_template and tokenizer.chat_template is None:
-        raise ValueError('Tokenizer does not support chat template')
+        raise ChatTemplateError()
 
     VERIFY_DATASETS.append(all_special_characters())
 
@@ -85,7 +92,7 @@ def _verify(tokenizer: PreTrainedTokenizerBase, verify_file_path: Optional[Union
     if not exist:
         exist, verify_json_path = _verify_file_exist(tokenizer)
         if not exist:
-            raise ValueError(f"The verification file does not exist, please call the `save_verify` API first")
+            raise VerificationFileNotFoundError()
     else:
         verify_json_path = verify_file_path
 
@@ -95,7 +102,7 @@ def _verify(tokenizer: PreTrainedTokenizerBase, verify_file_path: Optional[Union
     config = VerifyConfig.from_dict(data)
 
     if config is None or len(config.datasets) == 0:
-        raise ValueError(f"Initialization verification data failed, please check {verify_json_path}")
+        raise VerificationInitializationError(verify_json_path=verify_json_path)
 
     for verify_data in config.datasets:
         input = verify_data.input
