@@ -81,8 +81,8 @@ def _verify(tokenizer: PreTrainedTokenizerBase, save_directory: Optional[Union[s
     exist = False
 
     if save_directory is not None:
-        verify_file_path = os.path.join(save_directory, VERIFY_JSON_FILE_NAME)
-        exist = isfile(verify_file_path)
+        verify_json_path = os.path.join(save_directory, VERIFY_JSON_FILE_NAME)
+        exist = isfile(verify_json_path)
 
     if not exist:
         exist, verify_json_path = _verify_file_exist(tokenizer)
