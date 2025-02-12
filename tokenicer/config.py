@@ -1,14 +1,16 @@
 from typing import List, Optional
 from dataclasses import dataclass, field
 
+class ValidateDataFormat(str, Enum):
+    "simple": SIMPLE
 
 @dataclass
 class VerifyData:
-    format: str = 'simple'
-    input: str = ''
-    output: List[int] = field(default_factory=list)
+    format: ValidateDataFormat = ValidateDataFormat.SIMPLE, 
+    input: Untion[str, Any] = None
+    output: List[int] = field(default_factory=list) # what is default_factory?
 
-    def __init__(self, input: str, output: List[int], format: str = 'simple'):
+    def __init__(self, input: Union[str, Any], output: List[int], format: ValidateDataFormat = ValidateDataFormat.SIMPLE):
         self.format = format
         self.input = input
         self.output = output
