@@ -28,7 +28,7 @@ class TestVerify(unittest.TestCase):
         tokenicer = Tokenicer.load(model_path)
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            tokenicer.save_pretrained(tmpdir)
+            tokenicer.save(tmpdir)
             verify_json_path = os.path.join(tmpdir, VERIFY_JSON_FILE_NAME)
             result = os.path.isfile(verify_json_path)
             self.assertTrue(result, f"Save verify file failed: {verify_json_path} does not exist.")

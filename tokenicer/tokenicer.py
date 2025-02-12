@@ -56,6 +56,8 @@ class Tokenicer:
             raise ValueError(
                 f"Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
 
+
+
         tokenicer.model_config = auto_config(path, trust_remote_code)
 
         if tokenicer.model_config is None:
@@ -169,16 +171,6 @@ class Tokenicer:
 
     def verify(self, save_directory: Union[str, os.PathLike] = None) -> bool:
         return _verify(self.tokenizer, save_directory=save_directory)
-
-    # Override tokenizer save_pretrained
-    def save_pretrained(
-            self,
-            save_directory: Union[str, os.PathLike],
-            use_chat_template: bool = True,
-            **kwargs,
-    ) -> Tuple[str]:
-        self.save(save_directory=save_directory, use_chat_template=use_chat_template)
-        return self.tokenizer.save_pretrained(save_directory=save_directory, **kwargs)
 
     def __getattr__(self, name):
         if hasattr(self.tokenizer, name):
