@@ -34,11 +34,11 @@ def _verify_file_exist(tokenizer):
 
 
 def _save(
-        save_directory: Union[str, os.PathLike],
+        save_dir: Union[str, os.PathLike],
         tokenizer: PreTrainedTokenizerBase,
         use_chat_template: bool = True
     ):
-    verify_json_path = os.path.join(save_directory, VERIFY_JSON_FILE_NAME)
+    verify_json_path = os.path.join(save_dir, VERIFY_JSON_FILE_NAME)
     exist = isfile(verify_json_path)
     if exist:
         import logging
