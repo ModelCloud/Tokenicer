@@ -38,6 +38,8 @@ def _save(
         tokenizer: PreTrainedTokenizerBase,
         use_chat_template: bool = True
     ):
+    os.makedirs(save_dir, exist_ok=True)
+
     verify_json_path = os.path.join(save_dir, VERIFY_JSON_FILE_NAME)
     exist = isfile(verify_json_path)
     if exist:
