@@ -38,9 +38,6 @@ MODEL_PAD_TOKEN_MAP = {
 VERIFY_JSON_FILE_NAME = "tokenizer_verify.jsonl"
 VERIFY_ENCODE_PARAMS = {"return_tensors": "pt", "add_special_tokens": False}
 
-INPUT_KEY = "input"
-TENSOR_KEY = "tensor"
-
 VERIFY_DATASETS = [
         # English
         "Sure! I'd be happy to help. What kind of writing prompt are you looking for?",
