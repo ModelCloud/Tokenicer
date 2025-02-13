@@ -19,7 +19,6 @@ from tokenicer import Tokenicer
 
 
 class TestModelConfig(unittest.TestCase):
-
     def test_model_config(self):
         model_path = "/monster/data/model/mpt-7b-instruct"
         tokenicer = Tokenicer.load(model_path)
@@ -30,11 +29,11 @@ class TestModelConfig(unittest.TestCase):
         self.assertEqual(
             tokenicer.model_config.bos_token_id,
             expect_bos_token_id,
-            msg=f"Expected bos_token_id: `{expect_bos_token_id}`, actual=`{tokenicer.model_config.bos_token_id}`."
+            msg=f"Expected bos_token_id: `{expect_bos_token_id}`, actual=`{tokenicer.model_config.bos_token_id}`.",
         )
 
         self.assertEqual(
             tokenicer.model_config.eos_token_id,
             expect_eos_token_id,
-            msg=f"Expected eos_token_id: `{expect_eos_token_id}`, actual=`{tokenicer.model_config.eos_token_id}`."
+            msg=f"Expected eos_token_id: `{expect_eos_token_id}`, actual=`{tokenicer.model_config.eos_token_id}`.",
         )

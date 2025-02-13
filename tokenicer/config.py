@@ -45,6 +45,7 @@ class ValidateMeta:
     def __post_init__(self):
         if self.validator is None:
             from .version import __version__
+
             self.validator = f"tokenicer:{__version__}"
 
         if self.uri is None:
@@ -58,7 +59,7 @@ class ValidateConfig:
 
     def __post_init__(self):
         if self.meta is None:
-           self.meta = ValidateMeta()
+            self.meta = ValidateMeta()
 
         if self.data is None:
             self.data = []
@@ -66,21 +67,16 @@ class ValidateConfig:
     def to_dict(self):
         dataset_dict = [
             {
-                'format': data.format.value,
-                'input': data.input,
-                'output': data.output,
-            } for data in self.data
+                "format": data.format.value,
+                "input": data.input,
+                "output": data.output,
+            }
+            for data in self.data
         ]
 
-        meta_dict = {
-            'validator': self.meta.validator,
-            'uri': self.meta.uri
-        }
+        meta_dict = {"validator": self.meta.validator, "uri": self.meta.uri}
 
-        return {
-            'meta': meta_dict,
-            'data': dataset_dict
-        }
+        return {"meta": meta_dict, "data": dataset_dict}
 
     @classmethod
     def from_dict(cls, data: Dict):

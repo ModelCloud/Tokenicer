@@ -20,7 +20,9 @@ from typing import Union, List, Optional
 from transformers import AutoConfig, PretrainedConfig
 
 
-def candidate_ids(token_list: List[Union[str, int]], vocab: dict) -> List[Optional[int]]:
+def candidate_ids(
+    token_list: List[Union[str, int]], vocab: dict
+) -> List[Optional[int]]:
     token_ids = []
     for item in token_list:
         if isinstance(item, str):

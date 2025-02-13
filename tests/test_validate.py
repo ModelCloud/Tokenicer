@@ -22,7 +22,6 @@ import tempfile
 
 
 class TestValidate(unittest.TestCase):
-
     def test_validate(self):
         model_path = "/monster/data/model/Qwen2.5-0.5B-Instruct"
         tokenicer = Tokenicer.load(model_path)
@@ -31,12 +30,10 @@ class TestValidate(unittest.TestCase):
             tokenicer.save(tmpdir)
             validate_json_path = os.path.join(tmpdir, VALIDATE_JSON_FILE_NAME)
             result = os.path.isfile(validate_json_path)
-            self.assertTrue(result, f"Save validate file failed: {validate_json_path} does not exist.")
+            self.assertTrue(
+                result,
+                f"Save validate file failed: {validate_json_path} does not exist.",
+            )
 
             validate = tokenicer.validate(tmpdir)
             self.assertTrue(validate, f"Expected validate='True' but got '{validate}'.")
-
-
-
-
-

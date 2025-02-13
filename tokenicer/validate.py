@@ -27,29 +27,33 @@ from .config import ValidateConfig, ValidateData
 def _validate_file_exist(tokenizer):
     path = config_path(tokenizer)
     if path is None:
-        raise ValueError("Can not retrieve config path from the provided `pretrained_model_name_or_path`.")
+        raise ValueError(
+            "Can not retrieve config path from the provided `pretrained_model_name_or_path`."
+        )
 
     validate_json_path = os.path.join(path, VALIDATE_JSON_FILE_NAME)
     return isfile(validate_json_path), validate_json_path
 
 
 def _save(
-        save_dir: Union[str, os.PathLike],
-        tokenizer: PreTrainedTokenizerBase,
-        use_chat_template: bool = True
-    ):
+    save_dir: Union[str, os.PathLike],
+    tokenizer: PreTrainedTokenizerBase,
+    use_chat_template: bool = True,
+) -> str:
     os.makedirs(save_dir, exist_ok=True)
 
     validate_json_path = os.path.join(save_dir, VALIDATE_JSON_FILE_NAME)
     exist = isfile(validate_json_path)
     if exist:
         import logging
+
         logger = logging.getLogger(__name__)
         logger.warning(f"Validate file:{validate_json_path} already exists.")
         return validate_json_path
 
     if use_chat_template and tokenizer.chat_template is None:
         import logging
+
         logger = logging.getLogger(__name__)
         logger.warning("Tokenizer does not support chat template.")
         use_chat_template = False
@@ -76,13 +80,16 @@ def _save(
 
     validate_dic = ValidateConfig(data=results).to_dict()
 
-    with open(validate_json_path, 'w', encoding='utf-8') as f:
+    with open(validate_json_path, "w", encoding="utf-8") as f:
         json.dump(validate_dic, f, indent=4)
-        f.write('\n')
+        f.write("\n")
     return validate_json_path
 
 
-def _validate(tokenizer: PreTrainedTokenizerBase, save_dir: Optional[Union[str, os.PathLike]] = None) -> bool:
+def _validate(
+    tokenizer: PreTrainedTokenizerBase,
+    save_dir: Optional[Union[str, os.PathLike]] = None,
+) -> bool:
     exist = False
 
     if save_dir is not None:
@@ -92,19 +99,25 @@ def _validate(tokenizer: PreTrainedTokenizerBase, save_dir: Optional[Union[str, 
     if not exist:
         exist, validate_json_path = _validate_file_exist(tokenizer)
         if not exist:
-            raise ValueError("Validate file does not exist, please call the `save()` API first.")
+            raise ValueError(
+                "Validate file does not exist, please call the `save()` API first."
+            )
 
-    with open(validate_json_path, 'r', encoding='utf-8') as f:
+    with open(validate_json_path, "r", encoding="utf-8") as f:
         data = json.loads(f.read())
 
     config = ValidateConfig.from_dict(data)
 
     if config is None or len(config.data) == 0:
-        raise ValueError(f"Init validate data failed, please check {validate_json_path}.")
+        raise ValueError(
+            f"Init validate data failed, please check {validate_json_path}."
+        )
 
     for data in config.data:
         input = data.input
-        tokenized = tokenizer.encode_plus(input, **VALIDATE_ENCODE_PARAMS)["input_ids"].tolist()[0]
+        tokenized = tokenizer.encode_plus(input, **VALIDATE_ENCODE_PARAMS)[
+            "input_ids"
+        ].tolist()[0]
         if data.output != tokenized:
             return False
 
