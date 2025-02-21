@@ -45,7 +45,7 @@ jobs:
     needs:
       - list-test-files
     container:
-      image: 10.0.13.31:5000/modelcloud/gptqmodel:github-ci-v5
+      image: 10.0.13.31:5000/modelcloud/gptqmodel:github-ci-v7
       volumes:
         - /home/ci/models:/monster/data/model
         - /home/ci/models/huggingface:/github/home/.cache/huggingface
