@@ -63,4 +63,4 @@ jobs:
         run: pip install .
 
       - name: test
-        run: pytest tests/${{ matrix.test_script }}
+        run: pytest -n 8 tests/${{ matrix.test_script }}
