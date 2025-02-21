@@ -27,11 +27,6 @@ logging.basicConfig(level=logging.INFO)
 
 
 class Tokenicer():
-    def __init__(self, tokenizer: PreTrainedTokenizerBase, model_config: PretrainedConfig = None, trust_remote_code:bool=False, auto_fix:bool=True, strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None):
-        self.tokenizer = tokenizer
-        self.model_config = model_config
-        if auto_fix:
-            self.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens, trust_remote_code=trust_remote_code)
 
     @classmethod
     def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None, **kwargs):
@@ -72,7 +67,6 @@ class Tokenicer():
         model_or_path: Optional[Union[str, PreTrainedModel]] = None,
         pad_tokens: Optional[List[Union[str, int]]] = None,
         strict: bool = False,
-        trust_remote_code:bool=False,
     ):
         if model_or_path is not None:
             if isinstance(model_or_path, str):
