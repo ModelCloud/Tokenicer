@@ -14,9 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from tokenicer import Tokenicer
-from parameterized import parameterized
 import unittest
+
+from parameterized import parameterized
+from tokenicer import Tokenicer
+
 
 class TestTokenicer(unittest.TestCase):
 

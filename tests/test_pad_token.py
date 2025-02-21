@@ -15,11 +15,11 @@
 # limitations under the License.
 
 import unittest
-from parameterized import parameterized
-from typing import Union, List, Optional
-from transformers import AutoTokenizer
+from typing import List, Optional, Union
 
+from parameterized import parameterized
 from tokenicer import Tokenicer
+from transformers import AutoTokenizer
 
 
 class TestPadToken(unittest.TestCase):

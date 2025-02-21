@@ -16,8 +16,6 @@
 
 import unittest
 
-from transformers import AutoTokenizer
-
 from tokenicer import Tokenicer
 
 
