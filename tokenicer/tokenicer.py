@@ -16,7 +16,7 @@
 
 import logging
 from typing import Union, List, Optional
-from transformers import PreTrainedModel, AutoTokenizer, PreTrainedTokenizer, PretrainedConfig
+from transformers import PreTrainedModel, AutoTokenizer, PreTrainedTokenizerBase, PretrainedConfig
 from .util import candidate_id, config_path, auto_config
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
 
@@ -25,32 +25,30 @@ logging.basicConfig(level=logging.INFO)
 
 
 class Tokenicer:
-    def __init__(self, tokenizer: PreTrainedTokenizer, model_config: PretrainedConfig = None):
+    def __init__(self, tokenizer: PreTrainedTokenizerBase, model_config: PretrainedConfig = None):
         self.tokenizer = tokenizer
         self.model_config = model_config
 
     @classmethod
-    def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizer], strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None, **kwargs):
+    def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None, **kwargs):
         if pretrained_model_name_or_path is None:
             raise ValueError("Tokenicer: `pretrained_model_name_or_path` cannot be `None`.")
 
         trust_remote_code = kwargs.get('trust_remote_code', False)
 
         path = None
-        tokenizer = None
-        if isinstance(pretrained_model_name_or_path, PreTrainedTokenizer):
+
+        if isinstance(pretrained_model_name_or_path, PreTrainedTokenizerBase):
             tokenizer = pretrained_model_name_or_path
             path = config_path(tokenizer)
         elif isinstance(pretrained_model_name_or_path, str):
             tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **kwargs)
-            if isinstance(tokenizer, PreTrainedTokenizer):
+            if isinstance(tokenizer, PreTrainedTokenizerBase):
                 path = pretrained_model_name_or_path
             else:
-                ValueError(
-                    f"Tokenicer: Failed to initialize `tokenizer`: please ensure that the `pretrained_model_name_or_path` parameter is set correctly.")
+                ValueError(f"Tokenicer: Failed to initialize `tokenizer`: please ensure that the `pretrained_model_name_or_path` parameter is set correctly.")
         else:
-            raise ValueError(
-                f"Tokenicer: Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
+            raise ValueError(f"Tokenicer: Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
 
         model_config = auto_config(path, trust_remote_code)
 
