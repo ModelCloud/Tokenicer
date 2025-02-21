@@ -162,5 +162,8 @@ class Tokenicer():
         except AttributeError:
             return super().__getattribute__(name)
 
+    def __getattr__(self, name):
+        return getattr(self.tokenizer, name)
+
     def __call__(self, data, **kwargs):
         return self.tokenizer(data, **kwargs)
