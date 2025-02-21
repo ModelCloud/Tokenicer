@@ -26,9 +26,11 @@ logging.basicConfig(level=logging.INFO)
 
 
 class Tokenicer():
-    def __init__(self, tokenizer: PreTrainedTokenizerBase, model_config: PretrainedConfig = None):
+    def __init__(self, tokenizer: PreTrainedTokenizerBase, auto_fix:bool=True, model_config: PretrainedConfig = None, strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None):
         self.tokenizer = tokenizer
         self.model_config = model_config
+        if auto_fix:
+            self.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
 
     @classmethod
     def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None, **kwargs):
@@ -61,8 +63,7 @@ class Tokenicer():
         tokenizer_cls = type(tokenizer)
         tokenicer_cls_wrapper = type(f"{tokenizer_cls.__name__}", (cls, tokenizer_cls), {})
 
-        t = tokenicer_cls_wrapper(tokenizer=tokenizer, model_config=model_config)
-        t.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
+        t = tokenicer_cls_wrapper(tokenizer=tokenizer, strict=strict, pad_tokens=pad_tokens, model_config=model_config)
         return t
 
     def auto_fix_pad_token(
