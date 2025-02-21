@@ -42,18 +42,13 @@ class TestTokenicer(unittest.TestCase):
             ('vocab_size', 151643)
         ]
     )
-    def test_property(self, property, expect_token):
-        if property == 'eos_token':
-            result = self.tokenizer.eos_token
-        elif property == 'pad_token':
-            result = self.tokenizer.pad_token
-        elif property == 'vocab_size':
-            result = self.tokenizer.vocab_size
+    def test_property(self, attr_name, expect_token):
+        attr_value = getattr(self.tokenizer, attr_name)
 
         self.assertEqual(
-            result,
+            attr_value,
             expect_token,
-            msg=f"Expected {property}: `{expect_token}`, actual=`{result}`."
+            msg=f"Expected {property}: `{expect_token}`, actual=`{attr_value}`."
         )
 
     def test_encode(self):
