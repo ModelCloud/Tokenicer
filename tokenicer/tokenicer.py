@@ -15,10 +15,9 @@
 # limitations under the License.
 
 import logging
-from functools import partial
 from typing import List, Optional, Union
 
-from transformers import AutoTokenizer, PretrainedConfig, PreTrainedModel, PreTrainedTokenizerBase
+from transformers import AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
 
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
 from .util import auto_config, candidate_id, config_path
