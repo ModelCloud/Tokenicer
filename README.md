@@ -9,6 +9,8 @@
 </p>
 
 ## News
+* 02/21/2025 [0.0.3](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.3): Now `tokenicer` instance dynamically inherits the `native` `tokenizer.__class__` of tokenizer passed in or loaded via our `tokenicer.load()` api.
+
 * 02/10/2025 [0.0.2](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.2): 🤗 Initial release!
 
 ## Features:
@@ -52,10 +54,13 @@ pip install -v .
 
 # With `Tokenicer.load()`
 from tokenicer import Tokenicer
+
+# Returns `Tokenicer` instance that inherits original `Qwen2TokenizerFast` type.
 tokenizer = Tokenicer.load('Qwen/Qwen2.5-0.5B-Instruct')
 
 # That's it! Toke(n)icer has auto-fixed Qwen2.5-0.5B-Instruct's incorrect `pad_token`.
 # Now this this model can be `trained` and `inferenced` correctly with `batch` and `masks`.
+# Now use the new tokenizer like any normal HF PretrainedTokenizer(Fast)
 print(f"pad_token: `{tokenizer.pad_token}`")
 ```
 
