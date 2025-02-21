@@ -15,6 +15,9 @@
 # limitations under the License.
 
 import unittest
+
+from transformers import AutoTokenizer
+
 from tokenicer import Tokenicer
 
 
@@ -23,6 +26,8 @@ class TestModelConfig(unittest.TestCase):
     def test_model_config(self):
         model_path = "/monster/data/model/mpt-7b-instruct"
         tokenicer = Tokenicer.load(model_path)
+
+        self.assertIsInstance(tokenicer, type(AutoTokenizer.from_pretrained(model_path)))
 
         expect_bos_token_id = 0
         expect_eos_token_id = 0

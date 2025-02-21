@@ -16,7 +16,8 @@
 
 import logging
 from typing import Union, List, Optional
-from transformers import PreTrainedModel, AutoTokenizer, PreTrainedTokenizerBase, PretrainedConfig
+from transformers import PreTrainedModel, AutoTokenizer, PreTrainedTokenizerBase,PreTrainedTokenizerFast, PreTrainedTokenizer,PretrainedConfig
+
 from .util import candidate_id, config_path, auto_config
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
 
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-class Tokenicer(PreTrainedTokenizerBase):
+class Tokenicer():
     def __init__(self, tokenizer: PreTrainedTokenizerBase, model_config: PretrainedConfig = None):
         self.tokenizer = tokenizer
         self.model_config = model_config
@@ -36,8 +37,6 @@ class Tokenicer(PreTrainedTokenizerBase):
 
         trust_remote_code = kwargs.get('trust_remote_code', False)
 
-        path = None
-
         if isinstance(pretrained_model_name_or_path, PreTrainedTokenizerBase):
             tokenizer = pretrained_model_name_or_path
             path = config_path(tokenizer)
@@ -46,7 +45,7 @@ class Tokenicer(PreTrainedTokenizerBase):
             if isinstance(tokenizer, PreTrainedTokenizerBase):
                 path = pretrained_model_name_or_path
             else:
-                ValueError(f"Tokenicer: Failed to initialize `tokenizer`: please ensure that the `pretrained_model_name_or_path` parameter is set correctly.")
+                raise ValueError(f"Tokenicer: Failed to initialize `tokenizer`: please ensure the `pretrained_model_name_or_path` is set correctly.")
         else:
             raise ValueError(f"Tokenicer: Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
 
@@ -58,7 +57,11 @@ class Tokenicer(PreTrainedTokenizerBase):
                 f"Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
-        t = cls(tokenizer=tokenizer, model_config=model_config)
+        # dynamically change Tokenicer's type to tokenizer's
+        tokenizer_cls = type(tokenizer)
+        DynamicTokenicer = type(f"Tokenicer_{tokenizer_cls.__name__}", (cls, tokenizer_cls), {})
+
+        t = DynamicTokenicer(tokenizer=tokenizer, model_config=model_config)
         t.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
         return t
 
@@ -68,7 +71,6 @@ class Tokenicer(PreTrainedTokenizerBase):
         pad_tokens: Optional[List[Union[str, int]]] = None,
         strict: bool = False,
     ):
-        model_config = None
         if model_or_path is not None:
             if isinstance(model_or_path, str):
                 model_config = auto_config(model_or_path, self.tokenizer.trust_remote_code)
