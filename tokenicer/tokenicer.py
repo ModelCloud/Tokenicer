@@ -15,22 +15,23 @@
 # limitations under the License.
 
 import logging
-from typing import Union, List, Optional
-from transformers import PreTrainedModel, AutoTokenizer, PreTrainedTokenizerBase,PreTrainedTokenizerFast, PreTrainedTokenizer,PretrainedConfig
+from typing import List, Optional, Union
 
-from .util import candidate_id, config_path, auto_config
+from transformers import AutoTokenizer, PretrainedConfig, PreTrainedModel, PreTrainedTokenizerBase
+
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
+from .util import auto_config, candidate_id, config_path
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
 class Tokenicer():
-    def __init__(self, tokenizer: PreTrainedTokenizerBase, auto_fix:bool=True, model_config: PretrainedConfig = None, strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None):
+    def __init__(self, tokenizer: PreTrainedTokenizerBase, model_config: PretrainedConfig = None, trust_remote_code:bool=False, auto_fix:bool=True, strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None):
         self.tokenizer = tokenizer
         self.model_config = model_config
         if auto_fix:
-            self.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
+            self.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens, trust_remote_code=trust_remote_code)
 
     @classmethod
     def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None, **kwargs):
@@ -47,7 +48,7 @@ class Tokenicer():
             if isinstance(tokenizer, PreTrainedTokenizerBase):
                 path = pretrained_model_name_or_path
             else:
-                raise ValueError(f"Tokenicer: Failed to initialize `tokenizer`: please ensure the `pretrained_model_name_or_path` is set correctly.")
+                raise ValueError("Tokenicer: Failed to initialize `tokenizer`: please ensure the `pretrained_model_name_or_path` is set correctly.")
         else:
             raise ValueError(f"Tokenicer: Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
 
@@ -55,15 +56,15 @@ class Tokenicer():
 
         if model_config is None:
             logger.warning(
-                f"Tokenicer: Auto model config retrieval from `pretrained_model_name_or_path` failed. "
-                f"Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
+                "Tokenicer: Auto model config retrieval from `pretrained_model_name_or_path` failed. "
+                "Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
         # dynamically change Tokenicer's type to tokenizer's
         tokenizer_cls = type(tokenizer)
         tokenicer_cls_wrapper = type(f"{tokenizer_cls.__name__}", (cls, tokenizer_cls), {})
 
-        t = tokenicer_cls_wrapper(tokenizer=tokenizer, strict=strict, pad_tokens=pad_tokens, model_config=model_config)
+        t = tokenicer_cls_wrapper(tokenizer=tokenizer, strict=strict, pad_tokens=pad_tokens, model_config=model_config, trust_remote_code=trust_remote_code)
         return t
 
     def auto_fix_pad_token(
@@ -71,6 +72,7 @@ class Tokenicer():
         model_or_path: Optional[Union[str, PreTrainedModel]] = None,
         pad_tokens: Optional[List[Union[str, int]]] = None,
         strict: bool = False,
+        trust_remote_code:bool=False,
     ):
         if model_or_path is not None:
             if isinstance(model_or_path, str):
@@ -88,8 +90,8 @@ class Tokenicer():
                 model_config = self.model_config
             else:
                 raise ValueError(
-                    f"Tokenicer: Auto model config retrieval from `pretrained_model_name_or_path` failed. "
-                    f"Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
+                    "Tokenicer: Auto model config retrieval from `pretrained_model_name_or_path` failed. "
+                    "Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
         self.auto_fix_model_config(model_config)
@@ -103,9 +105,9 @@ class Tokenicer():
                 if pad_token_id is None and self.tokenizer.eos_token_id is not None:
                     pad_token_id = self.tokenizer.eos_token_id
                     logger.warning(
-                        f"Tokenicer: Auto model config unable to fix `pad_token`, Use tokenizer.eos_token as pad_token"
-                        f"pad_token = eos_token, There may be problems with the model during training or inference."
-                        f"It is recommended that you manually pass a `pad_tokens` to `load()`",
+                        "Tokenicer: Auto model config unable to fix `pad_token`, Use tokenizer.eos_token as pad_token"
+                        "pad_token = eos_token, There may be problems with the model during training or inference."
+                        "It is recommended that you manually pass a `pad_tokens` to `load()`",
                     )
 
             if pad_token_id is None:
