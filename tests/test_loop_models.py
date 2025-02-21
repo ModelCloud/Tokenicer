@@ -33,4 +33,13 @@ class Test(unittest.TestCase):
 
     @parameterized.expand(model_list)
     def test(self, model_path):
-        tokenicer = Tokenicer.load(model_path, trust_remote_code=True)
+        if "XVERSE-7B-Chat" in model_path:
+            self.skipTest(f"{model_path} requires old versions of transformers & tokenizer, skipped")
+
+        try:
+            Tokenicer.load(model_path, trust_remote_code=False)
+        except ValueError as e:
+            if "trust_remote_code=True" in str(e):
+                Tokenicer.load(model_path, trust_remote_code=True)
+            else:
+                raise e
