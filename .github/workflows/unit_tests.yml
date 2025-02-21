@@ -62,5 +62,5 @@ jobs:
       - name: install
         run: pip install .
 
-      - name: test_pad_token
+      - name: test
         run: pytest tests/${{ matrix.test_script }}
