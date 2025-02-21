@@ -59,9 +59,9 @@ class Tokenicer():
 
         # dynamically change Tokenicer's type to tokenizer's
         tokenizer_cls = type(tokenizer)
-        DynamicTokenicer = type(f"Tokenicer_{tokenizer_cls.__name__}", (cls, tokenizer_cls), {})
+        tokenicer_cls_wrapper = type(f"{tokenizer_cls.__name__}", (cls, tokenizer_cls), {})
 
-        t = DynamicTokenicer(tokenizer=tokenizer, model_config=model_config)
+        t = tokenicer_cls_wrapper(tokenizer=tokenizer, model_config=model_config)
         t.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
         return t
 
