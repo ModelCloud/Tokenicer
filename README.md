@@ -54,10 +54,13 @@ pip install -v .
 
 # With `Tokenicer.load()`
 from tokenicer import Tokenicer
+
+# Returns `Tokenicer` instance that inherits original `Qwen2TokenizerFast` type.
 tokenizer = Tokenicer.load('Qwen/Qwen2.5-0.5B-Instruct')
 
 # That's it! Toke(n)icer has auto-fixed Qwen2.5-0.5B-Instruct's incorrect `pad_token`.
 # Now this this model can be `trained` and `inferenced` correctly with `batch` and `masks`.
+# Now use the new tokenizer like any normal HF PretrainedTokenizer(Fast)
 print(f"pad_token: `{tokenizer.pad_token}`")
 ```
 
