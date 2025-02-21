@@ -109,7 +109,7 @@ class Tokenicer():
 
             if pad_token_id is None:
                 raise ValueError(
-                    "Tokenicer: Model tokenizer requires fixing but we are unable to auto-fix `pad_token`. Please consult model docks manually pass a `pad_tokens` to `load()` or set `strict`= False."
+                    "Tokenicer: Model tokenizer requires fixing but we are unable to auto-fix `pad_token`. Please consult model docs and pass `pad_tokens` to `load()` or set `strict`= False."
                 )
 
         self.tokenizer.pad_token_id = pad_token_id
