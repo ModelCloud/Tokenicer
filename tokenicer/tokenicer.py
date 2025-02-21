@@ -151,11 +151,11 @@ class Tokenicer():
         return pad_token_id
 
     def auto_fix_model_config(self, model_config):
-        if model_config.bos_token_id is None and self.tokenizer.bos_token_id is not None:
+        if model_config.bos_token_id is None and getattr(self.tokenizer, "bos_token_id", None) is not None:
             model_config.bos_token = self.tokenizer.bos_token
             model_config.bos_token_id = self.tokenizer.bos_token_id
 
-        if model_config.eos_token_id is None and self.tokenizer.eos_token_id is not None:
+        if model_config.eos_token_id is None and getattr(self.tokenizer, "eos_token_id", None) is not None:
             model_config.eos_token = self.tokenizer.eos_token
             model_config.eos_token_id = self.tokenizer.eos_token_id
 
