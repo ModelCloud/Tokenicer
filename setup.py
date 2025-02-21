@@ -14,10 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from setuptools import setup, find_packages
 from pathlib import Path
 
-__version__ = "0.1.0-dev"
+from setuptools import find_packages, setup
+
+__version__ = "0.0.3"
 
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()

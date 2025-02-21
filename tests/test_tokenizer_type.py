@@ -13,29 +13,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import unittest
+from typing import Type
 
+from parameterized import parameterized
 from tokenicer import Tokenicer
+from transformers import AutoTokenizer, PreTrainedTokenizerBase, Qwen2TokenizerFast
 
 
-class TestModelConfig(unittest.TestCase):
+class Test(unittest.TestCase):
 
-    def test_model_config(self):
-        model_path = "/monster/data/model/mpt-7b-instruct"
+    @parameterized.expand(
+        [
+            ("/monster/data/model/Qwen2.5-0.5B-Instruct/", Qwen2TokenizerFast),
+        ]
+    )
+    def test(self, model_path:str, expected_type:Type[PreTrainedTokenizerBase]):
         tokenicer = Tokenicer.load(model_path)
 
-        expect_bos_token_id = 0
-        expect_eos_token_id = 0
-
-        self.assertEqual(
-            tokenicer.model_config.bos_token_id,
-            expect_bos_token_id,
-            msg=f"Expected bos_token_id: `{expect_bos_token_id}`, actual=`{tokenicer.model_config.bos_token_id}`."
-        )
-
-        self.assertEqual(
-            tokenicer.model_config.eos_token_id,
-            expect_eos_token_id,
-            msg=f"Expected eos_token_id: `{expect_eos_token_id}`, actual=`{tokenicer.model_config.eos_token_id}`."
-        )
+        self.assertIsInstance(tokenicer, expected_type)
+        self.assertIsInstance(AutoTokenizer.from_pretrained(model_path), expected_type)

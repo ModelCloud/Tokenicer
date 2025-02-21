@@ -45,7 +45,7 @@ jobs:
     needs:
       - list-test-files
     container:
-      image: 10.0.13.31:5000/modelcloud/gptqmodel:github-ci-v5
+      image: 10.0.13.31:5000/modelcloud/gptqmodel:github-ci-v7
       volumes:
         - /home/ci/models:/monster/data/model
         - /home/ci/models/huggingface:/github/home/.cache/huggingface
@@ -62,5 +62,5 @@ jobs:
       - name: install
         run: pip install .
 
-      - name: test_pad_token
+      - name: test
         run: pytest tests/${{ matrix.test_script }}
