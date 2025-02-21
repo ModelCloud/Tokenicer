@@ -9,7 +9,7 @@
 </p>
 
 ## News
-* 02/21/2025 [0.0.3](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.3): Now `tokenicer` instance dynamically inherits the `native` `tokenizer.__class__` of tokenizer passed in or loaded via our `tokenicer.load()` api.
+* 02/21/2025 [0.0.4](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.4): Now `tokenicer` instance dynamically inherits the `native` `tokenizer.__class__` of tokenizer passed in or loaded via our `tokenicer.load()` api.
 
 * 02/10/2025 [0.0.2](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.2): 🤗 Initial release!
 
