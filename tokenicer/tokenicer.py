@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import logging
+from functools import partial
 from typing import List, Optional, Union
 
 from transformers import AutoTokenizer, PretrainedConfig, PreTrainedModel, PreTrainedTokenizerBase
@@ -27,6 +28,9 @@ logging.basicConfig(level=logging.INFO)
 
 
 class Tokenicer():
+
+    def __init__(self):
+        pass
 
     @classmethod
     def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None, **kwargs):
@@ -59,7 +63,10 @@ class Tokenicer():
         tokenizer_cls = type(tokenizer)
         tokenicer_cls_wrapper = type(f"{tokenizer_cls.__name__}", (cls, tokenizer_cls), {})
 
-        t = tokenicer_cls_wrapper(tokenizer=tokenizer, strict=strict, pad_tokens=pad_tokens, model_config=model_config, trust_remote_code=trust_remote_code)
+        t = tokenicer_cls_wrapper()
+        t.tokenizer = tokenizer
+        t.model_config = model_config
+        t.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
         return t
 
     def auto_fix_pad_token(
