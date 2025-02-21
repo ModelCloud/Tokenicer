@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-class Tokenicer:
+class Tokenicer(PreTrainedTokenizerBase):
     def __init__(self, tokenizer: PreTrainedTokenizerBase, model_config: PretrainedConfig = None):
         self.tokenizer = tokenizer
         self.model_config = model_config
@@ -154,9 +154,11 @@ class Tokenicer:
             model_config.eos_token = self.tokenizer.eos_token
             model_config.eos_token_id = self.tokenizer.eos_token_id
 
-    # only called when attribute does not exist in current cls instance
-    def __getattr__(self, name):
-        return getattr(self.tokenizer, name)
+    def __getattribute__(self, name):
+        try:
+            return super().__getattribute__("tokenizer").__getattribute__(name)
+        except AttributeError:
+            return super().__getattribute__(name)
 
     def __call__(self, data, **kwargs):
         return self.tokenizer(data, **kwargs)
