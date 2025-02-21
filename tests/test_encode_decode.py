@@ -27,7 +27,7 @@ class TestTokenicer(unittest.TestCase):
         self.example = 'Test Case String'
         self.expect_input_ids = [2271, 11538, 923]
 
-    def test_tokenicer_func(self):
+    def test_call(self):
         input_ids = self.tokenizer(self.example)['input_ids']
         self.assertEqual(
             input_ids,
@@ -42,7 +42,7 @@ class TestTokenicer(unittest.TestCase):
             ('vocab_size', 151643)
         ]
     )
-    def test_tokenicer_property(self, property, expect_token):
+    def test_property(self, property, expect_token):
         if property == 'eos_token':
             result = self.tokenizer.eos_token
         elif property == 'pad_token':
@@ -56,7 +56,7 @@ class TestTokenicer(unittest.TestCase):
             msg=f"Expected {property}: `{expect_token}`, actual=`{result}`."
         )
 
-    def test_tokenicer_encode(self):
+    def test_encode(self):
          input_ids = self.tokenizer.encode(self.example, add_special_tokens=False)
          self.assertEqual(
              input_ids,
@@ -64,7 +64,7 @@ class TestTokenicer(unittest.TestCase):
              msg=f"Expected input_ids: `{self.expect_input_ids}`, actual=`{input_ids}`."
          )
 
-    def test_tokenicer_decode(self):
+    def test_decode(self):
         example = self.tokenizer.decode(self.expect_input_ids, skip_special_tokens=True)
         self.assertEqual(
             self.example,
