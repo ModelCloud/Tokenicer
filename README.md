@@ -1,4 +1,10 @@
+<div align=center>
+
+
+<img src='https://github.com/user-attachments/assets/3e103e67-784d-47b6-873d-88f7b0c886a7'>
 <h1 align="center">Toke(n)icer</h1>
+</div>
+
 <p align="center">A (nicer) tokenizer you want to use for model inference and training: with all known peventable gotchas normalized or auto-fixed.</p>
 <p align="center">
     <a href="https://github.com/ModelCloud/Tokenicer/releases" style="text-decoration:none;"><img alt="GitHub release" src="https://img.shields.io/github/release/ModelCloud/Tokenicer.svg"></a>
