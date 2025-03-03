@@ -45,7 +45,7 @@ jobs:
     needs:
       - list-test-files
     container:
-      image: 10.0.13.31:5000/modelcloud/gptqmodel:github-ci-v5
+      image: 10.0.13.31:5000/modelcloud/gptqmodel:github-ci-v7
       volumes:
         - /home/ci/models:/monster/data/model
         - /home/ci/models/huggingface:/github/home/.cache/huggingface
@@ -57,10 +57,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: install requirements
-        run: pip install parameterized pytest
+        run: pip install parameterized pytest pytest-xdist
 
       - name: install
         run: pip install .
 
-      - name: test_pad_token
-        run: pytest tests/${{ matrix.test_script }}
+      - name: test
+        run: pytest -n 8 -v tests/${{ matrix.test_script }}

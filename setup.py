@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from setuptools import setup, find_packages
 from pathlib import Path
+from setuptools import find_packages, setup
 
 version_vars = {}
 exec("exec(open('tokenicer/version.py').read()); version=__version__", {}, version_vars)

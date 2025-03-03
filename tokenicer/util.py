@@ -16,7 +16,7 @@
 
 import os
 import string
-from typing import Union, List, Optional
+from typing import List, Optional, Union
 from transformers import AutoConfig, PretrainedConfig
 
 
