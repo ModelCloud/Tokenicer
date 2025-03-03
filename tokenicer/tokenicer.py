@@ -51,6 +51,7 @@ class Tokenicer():
             tokenizer = AutoTokenizer.from_pretrained(
                 pretrained_model_name_or_path, **kwargs
             )
+            print(f"cl->{tokenizer}")
             if isinstance(tokenizer, PreTrainedTokenizerBase):
                 path = pretrained_model_name_or_path
             else:
@@ -198,11 +199,11 @@ class Tokenicer():
         return _validate(self.tokenizer, save_dir=save_dir)
 
     def save_pretrained(
-                    self,
-                    save_directory: Union[str, os.PathLike],
-                    use_chat_template: bool = True,
-                    **kwargs,
-                ) -> Tuple[str]:
+            self,
+            save_directory: Union[str, os.PathLike],
+            use_chat_template: bool = True,
+            **kwargs,
+    ) -> Tuple[str]:
         self.save(save_dir=save_directory, use_chat_template=use_chat_template)
         return self.tokenizer.save_pretrained(save_directory=save_directory, **kwargs)
 
