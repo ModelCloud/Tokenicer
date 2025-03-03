@@ -14,12 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import string
 from typing import List, Optional, Union
-
 from transformers import AutoConfig, PretrainedConfig
 
 
-def candidate_ids(token_list: List[Union[str, int]], vocab: dict) -> List[Optional[int]]:
+def candidate_ids(
+    token_list: List[Union[str, int]], vocab: dict
+) -> List[Optional[int]]:
     token_ids = []
     for item in token_list:
         if isinstance(item, str):
@@ -48,3 +51,24 @@ def auto_config(path, trust_remote) -> Optional[PretrainedConfig]:
     if isinstance(config, PretrainedConfig):
         model_config = config
     return model_config
+
+
+def all_special_characters():
+    # Get punctuation characters
+    punctuation_chars = string.punctuation
+
+    # Get whitespace characters (such as space, newline, tab, etc.)
+    whitespace_chars = string.whitespace
+
+    # Common mathematical symbols and operators (manually added)
+    math_and_operators = "+-*/=<>%&^|!~"
+
+    # Combine all special characters into a single string
+    all_special_chars = punctuation_chars + whitespace_chars + math_and_operators
+
+    # Return the combined string
+    return all_special_chars
+
+
+def isfile(path):
+    return os.path.isfile(path)

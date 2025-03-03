@@ -14,28 +14,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import unittest
-
 from tokenicer import Tokenicer
+from tokenicer.const import VALIDATE_JSON_FILE_NAME
+import tempfile
 
 
-class TestModelConfig(unittest.TestCase):
-
-    def test_model_config(self):
-        model_path = "/monster/data/model/mpt-7b-instruct"
+class TestValidate(unittest.TestCase):
+    def test_validate(self):
+        model_path = "/monster/data/model/Qwen2.5-0.5B-Instruct"
         tokenicer = Tokenicer.load(model_path)
 
-        expect_bos_token_id = 0
-        expect_eos_token_id = 0
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tokenicer.save(tmpdir)
+            validate_json_path = os.path.join(tmpdir, VALIDATE_JSON_FILE_NAME)
+            result = os.path.isfile(validate_json_path)
+            self.assertTrue(
+                result,
+                f"Save validate file failed: {validate_json_path} does not exist.",
+            )
 
-        self.assertEqual(
-            tokenicer.model_config.bos_token_id,
-            expect_bos_token_id,
-            msg=f"Expected bos_token_id: `{expect_bos_token_id}`, actual=`{tokenicer.model_config.bos_token_id}`."
-        )
-
-        self.assertEqual(
-            tokenicer.model_config.eos_token_id,
-            expect_eos_token_id,
-            msg=f"Expected eos_token_id: `{expect_eos_token_id}`, actual=`{tokenicer.model_config.eos_token_id}`."
-        )
+            validate = tokenicer.validate(tmpdir)
+            self.assertTrue(validate, f"Expected validate='True' but got '{validate}'.")
