@@ -62,12 +62,11 @@ class TestGemma3(unittest.TestCase):
             messages,
             tokenize=True,
             return_tensors="pt",
-        )['inputs_ids'][0].tolist()
-
+        ).tolist()[0]
 
         self.assertEqual(
             chat_template_inputs[0],
             self.expect_first_token_id,
-            msg=f"Expected func `tokenizer.encode()` first_token_id=`{self.expect_first_token_id}`, actual=`{chat_template_inputs[0]}`."
+            msg=f"Expected func `tokenizer.apply_chat_template()` first_token_id=`{self.expect_first_token_id}`, actual=`{chat_template_inputs[0]}`."
         )
 
