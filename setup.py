@@ -15,17 +15,18 @@
 # limitations under the License.
 
 from pathlib import Path
-
 from setuptools import find_packages, setup
 
-__version__ = "0.0.4"
+version_vars = {}
+exec("exec(open('tokenicer/version.py').read()); version=__version__", {}, version_vars)
+tokenicer_version = version_vars['version']
 
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
 setup(
     name="tokenicer",
-    version=__version__,
+    version=tokenicer_version,
     author="ModelCloud",
     author_email="qubitium@modelcloud.ai",
     description="A (nicer) tokenizer you want to use for model `inference` and `training`: with all known peventable `gotchas` normalized or auto-fixed.",

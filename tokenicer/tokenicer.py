@@ -14,13 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import logging
-from typing import List, Optional, Union
-
+from typing import List, Optional, Union, Tuple
 from transformers import AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
-
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
 from .util import auto_config, candidate_id, config_path
+from .validate import _save, _validate, _validate_file_exist
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -32,17 +32,26 @@ class Tokenicer():
         pass
 
     @classmethod
-    def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None, **kwargs):
+    def load(
+        cls,
+        pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase],
+        strict: bool = False,
+        pad_tokens: Optional[List[Union[str, int]]] = None,
+        **kwargs,
+    ):
         if pretrained_model_name_or_path is None:
             raise ValueError("Tokenicer: `pretrained_model_name_or_path` cannot be `None`.")
 
-        trust_remote_code = kwargs.get('trust_remote_code', False)
+        trust_remote_code = kwargs.get("trust_remote_code", False)
 
         if isinstance(pretrained_model_name_or_path, PreTrainedTokenizerBase):
             tokenizer = pretrained_model_name_or_path
             path = config_path(tokenizer)
         elif isinstance(pretrained_model_name_or_path, str):
-            tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **kwargs)
+            tokenizer = AutoTokenizer.from_pretrained(
+                pretrained_model_name_or_path, **kwargs
+            )
+            print(f"cl->{tokenizer}")
             if isinstance(tokenizer, PreTrainedTokenizerBase):
                 path = pretrained_model_name_or_path
             else:
@@ -62,10 +71,14 @@ class Tokenicer():
         tokenizer_cls = type(tokenizer)
         tokenicer_cls_wrapper = type(f"{tokenizer_cls.__name__}", (cls, tokenizer_cls), {})
 
+
         t = tokenicer_cls_wrapper()
         t.tokenizer = tokenizer
         t.model_config = model_config
         t.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
+        exist, _ = _validate_file_exist(tokenizer)
+        if exist and t.validate():
+            logger.info("Tokenicer validate successful!")
         return t
 
     def auto_fix_pad_token(
@@ -76,12 +89,15 @@ class Tokenicer():
     ):
         if model_or_path is not None:
             if isinstance(model_or_path, str):
-                model_config = auto_config(model_or_path, self.tokenizer.trust_remote_code)
+                model_config = auto_config(
+                    model_or_path, self.tokenizer.trust_remote_code
+                )
             elif isinstance(model_or_path, PreTrainedModel):
                 model_config = getattr(model_or_path, "config", None)
             else:
                 raise ValueError(
-                    f"Tokenicer: Unsupported `model_or_path` type: Expected `str` or `PreTrainedModel`, actual = `{type(model_or_path)}`.")
+                    f"Tokenicer: Unsupported `model_or_path` type: Expected `str` or `PreTrainedModel`, actual = `{type(model_or_path)}`."
+                )
 
             if model_config is None:
                 raise ValueError("Tokenicer: Can not retrieve config from the provided `model_or_path`.")
@@ -98,8 +114,13 @@ class Tokenicer():
 
         pad_token_id = model_config.pad_token_id
 
-        if pad_token_id is None or pad_token_id in [model_config.bos_token_id, model_config.eos_token_id]:
-            pad_token_id = self._auto_map_pad_token(model_config=model_config, pad_tokens=pad_tokens)
+        if pad_token_id is None or pad_token_id in [
+            model_config.bos_token_id,
+            model_config.eos_token_id,
+        ]:
+            pad_token_id = self._auto_map_pad_token(
+                model_config=model_config, pad_tokens=pad_tokens
+            )
 
             if not strict:
                 if pad_token_id is None and self.tokenizer.eos_token_id is not None:
@@ -130,7 +151,10 @@ class Tokenicer():
             pad_token_id = candidate_id(pad_tokens, vocab)
 
         # Match MODEL_PAD_TOKEN_MAP to get pad token
-        if pad_token_id is None and MODEL_PAD_TOKEN_MAP.get(model_config.model_type, None) is not None:
+        if (
+            pad_token_id is None
+            and MODEL_PAD_TOKEN_MAP.get(model_config.model_type, None) is not None
+        ):
             token_tuple = MODEL_PAD_TOKEN_MAP.get(model_config.model_type)
             pad_token = token_tuple.token
             token_id = vocab.get(pad_token, None)
@@ -143,7 +167,10 @@ class Tokenicer():
 
         # Use eos_token as pad token
         if pad_token_id is None:
-            if isinstance(model_config.eos_token_id, list) and model_config.eos_token_id:
+            if (
+                isinstance(model_config.eos_token_id, list)
+                and model_config.eos_token_id
+            ):
                 pad_token_id = model_config.eos_token_id[0]
             else:
                 pad_token_id = model_config.eos_token_id
@@ -158,6 +185,27 @@ class Tokenicer():
         if model_config.eos_token_id is None and getattr(self.tokenizer, "eos_token_id", None) is not None:
             model_config.eos_token = self.tokenizer.eos_token
             model_config.eos_token_id = self.tokenizer.eos_token_id
+
+    def save(
+                self, save_dir: Union[str, os.PathLike], use_chat_template: bool = True
+            ) -> str:
+        return _save(
+            save_dir=save_dir,
+            tokenizer=self.tokenizer,
+            use_chat_template=use_chat_template,
+        )
+
+    def validate(self, save_dir: Union[str, os.PathLike] = None) -> bool:
+        return _validate(self.tokenizer, save_dir=save_dir)
+
+    def save_pretrained(
+            self,
+            save_directory: Union[str, os.PathLike],
+            use_chat_template: bool = True,
+            **kwargs,
+    ) -> Tuple[str]:
+        self.save(save_dir=save_directory, use_chat_template=use_chat_template)
+        return self.tokenizer.save_pretrained(save_directory=save_directory, **kwargs)
 
     def __getattribute__(self, name):
         try:
