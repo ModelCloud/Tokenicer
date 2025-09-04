@@ -59,7 +59,7 @@ jobs:
 
       - name: Print Env
         run: |
-          env_name="cu128_torch2.8.0_py3.12_build"
+          env_name="cu128_torch2.8.0_py3.12_tokenicer"
 
           echo "env name: $env_name"
 
