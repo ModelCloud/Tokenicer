@@ -49,6 +49,7 @@ jobs:
       volumes:
         - /home/ci/models:/monster/data/model
         - /home/ci/models/huggingface:/github/home/.cache/huggingface
+        - /home/ci/models/pyenv:/opt/pyenv
     strategy:
       fail-fast: false
       matrix:
