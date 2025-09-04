@@ -129,6 +129,9 @@ class Tokenicer():
         if pad_tokens is not None:
             pad_token_id = candidate_id(pad_tokens, vocab)
 
+        if pad_tokens is None and getattr(self.tokenizer, "pad_token_id", None) is not None:
+            return self.tokenizer.pad_token_id
+
         # Match MODEL_PAD_TOKEN_MAP to get pad token
         if pad_token_id is None and MODEL_PAD_TOKEN_MAP.get(model_config.model_type, None) is not None:
             token_tuple = MODEL_PAD_TOKEN_MAP.get(model_config.model_type)
