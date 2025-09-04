@@ -45,10 +45,11 @@ jobs:
     needs:
       - list-test-files
     container:
-      image: 10.0.13.31:5000/modelcloud/gptqmodel:github-ci-v7
+      image: 10.0.13.31:5000/nvidia/cuda:128-ubuntu22.04_0822
       volumes:
         - /home/ci/models:/monster/data/model
         - /home/ci/models/huggingface:/github/home/.cache/huggingface
+        - /home/ci/models/pyenv:/opt/pyenv
     strategy:
       fail-fast: false
       matrix:
@@ -56,8 +57,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Print Env
+        run: |
+          env_name="cu128_torch2.8.0_py3.12_tokenicer_${{ matrix.test_script }}"
+
+          echo "env name: $env_name"
+
+          if [ -d "$(pyenv root)/versions/$env_name" ]; then
+            echo "env exists, skip"
+            pyenv activate $env_name
+            pyenv local $env_name
+          else
+            echo "creating venv..."
+            pyenv virtualenv 3.12 "$env_name"
+            pyenv activate $env_name
+            pyenv local $env_name
+            bash -c "$(curl -L http://10.0.13.31/scripts/env/init_compiler_no_env.sh)" @ 128 2.8.0 3.12
+          fi
+
       - name: install requirements
-        run: pip install parameterized pytest pytest-xdist
+        run: |
+          pip install uv
+          uv pip install parameterized pytest pytest-xdist transformers -U
 
       - name: install
         run: pip install .
