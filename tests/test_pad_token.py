@@ -34,6 +34,7 @@ class TestPadToken(unittest.TestCase):
             ('/monster/data/model/Hymba-1.5B-Instruct', '<unk>', None, True),
             ('/monster/data/model/Mistral-7B-Instruct-v0.2', '<unk>'),
             ('/monster/data/model/Yi-Coder-1.5B-Chat', '<unk>'),
+            ('/monster/data/model/LongCat-Flash-Chat', '<longcat_pad>'),
             (AutoTokenizer.from_pretrained('/monster/data/model/glm-4-9b-chat-hf'), '<|endoftext|>')
         ]
     )
