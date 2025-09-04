@@ -66,10 +66,12 @@ jobs:
           if [ -d "$(pyenv root)/versions/$env_name" ]; then
             echo "env exists, skip"
             pyenv activate $env_name
+            pyenv local $env_name
           else
             echo "creating venv..."
             pyenv virtualenv 3.12 "$env_name"
             pyenv activate $env_name
+            pyenv local $env_name
             bash -c "$(curl -L http://10.0.13.31/scripts/env/init_compiler_no_env.sh)" @ 128 2.8.0 3.12
           fi
 
