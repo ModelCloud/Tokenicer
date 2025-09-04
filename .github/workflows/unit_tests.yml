@@ -69,10 +69,10 @@ jobs:
             pyenv activate $env_name
           else
             echo "creating venv..."
-            pyenv virtualenv "$python_version" "$env_name"
+            pyenv virtualenv 3.12 "$env_name"
             pyenv local $env_name
             pyenv activate $env_name
-            bash -c "$(curl -L http://${RUNNER}/scripts/env/init_compiler_no_env.sh)" @ 128 2.8.0 3.12
+            bash -c "$(curl -L http://10.0.13.31/scripts/env/init_compiler_no_env.sh)" @ 128 2.8.0 3.12
           fi
 
       - name: install requirements
