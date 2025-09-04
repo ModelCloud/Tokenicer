@@ -1,7 +1,7 @@
 <div align=center>
 
 
-<img src='https://github.com/user-attachments/assets/3e103e67-784d-47b6-873d-88f7b0c886a7'>
+<img width="40%" alt="image" src="https://github.com/user-attachments/assets/af392964-8d3f-47a6-89e6-337743398051" />
 <h1 align="center">Toke(n)icer</h1>
 </div>
 
