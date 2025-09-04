@@ -74,7 +74,7 @@ jobs:
           fi
 
       - name: install requirements
-        run: pip install parameterized pytest pytest-xdist transformers -U
+        run: uv pip install parameterized pytest pytest-xdist transformers -U
 
       - name: install
         run: pip install .
