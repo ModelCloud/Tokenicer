@@ -24,7 +24,7 @@ with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
 setup(
-    name="tokenicer",
+    name="TokeNicer",
     version=__version__,
     author="ModelCloud",
     author_email="qubitium@modelcloud.ai",
