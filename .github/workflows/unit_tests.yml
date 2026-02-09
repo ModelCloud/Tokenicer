@@ -68,7 +68,6 @@ jobs:
 
       - name: install requirements
         run: |
-          pip install uv
           uv pip install parameterized pytest pytest-xdist transformers -U
 
       - name: install
