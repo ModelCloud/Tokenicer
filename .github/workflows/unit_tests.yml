@@ -45,11 +45,12 @@ jobs:
     needs:
       - list-test-files
     container:
-      image: 10.0.13.31:5000/nvidia/cuda:128-ubuntu22.04_0822
+      image: 10.0.13.31:5000/nvidia/cuda:128-ubuntu22.04_0206
       volumes:
-        - /home/ci/models:/monster/data/model
-        - /home/ci/models/huggingface:/github/home/.cache/huggingface
-        - /home/ci/models/pyenv:/opt/pyenv
+        - /monster/ci/env/entrypoint.sh:/etc/profile.d/01-entrypoint.sh
+        - /monster/ci/models:/monster/data/model
+        - /monster/ci/huggingface:/github/home/.cache/huggingface
+        - /monster/ci/uv:/opt/uv
     strategy:
       fail-fast: false
       matrix:
@@ -63,25 +64,14 @@ jobs:
 
           echo "env name: $env_name"
 
-          if [ -d "$(pyenv root)/versions/$env_name" ]; then
-            echo "env exists, skip"
-            pyenv activate $env_name
-            pyenv local $env_name
-          else
-            echo "creating venv..."
-            pyenv virtualenv 3.12 "$env_name"
-            pyenv activate $env_name
-            pyenv local $env_name
-            bash -c "$(curl -L http://10.0.13.31/scripts/env/init_compiler_no_env.sh)" @ 128 2.8.0 3.12
-          fi
+          /opt/uv/setup_uv_venv.sh $env_name
 
       - name: install requirements
         run: |
-          pip install uv
-          uv pip install parameterized pytest pytest-xdist transformers -U
+          uv pip install parameterized pytest pytest-xdist jinja2 transformers sentencepiece torch tiktoken protobuf -U
 
       - name: install
-        run: pip install .
+        run: uv pip install .
 
       - name: test
         run: pytest -n 8 -v tests/${{ matrix.test_script }}
