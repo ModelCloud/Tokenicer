@@ -68,7 +68,7 @@ jobs:
 
       - name: install requirements
         run: |
-          uv pip install parameterized pytest pytest-xdist jinja2 transformers sentencepiece torch tiktoken -U
+          uv pip install parameterized pytest pytest-xdist jinja2 transformers sentencepiece torch tiktoken protobuf -U
 
       - name: install
         run: uv pip install .
