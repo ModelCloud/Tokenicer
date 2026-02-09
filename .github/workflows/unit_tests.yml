@@ -48,9 +48,9 @@ jobs:
       image: 10.0.13.31:5000/nvidia/cuda:128-ubuntu22.04_0206
       volumes:
         - /monster/ci/env/entrypoint_pyenv.sh:/etc/profile.d/01-entrypoint.sh
-        - /home/ci/models:/monster/data/model
-        - /home/ci/models/huggingface:/github/home/.cache/huggingface
-        - /home/ci/models/pyenv:/opt/pyenv
+        - /monster/ci/models:/monster/data/model
+        - /monster/ci/huggingface:/github/home/.cache/huggingface
+        - /monster/ci/pyenv:/opt/pyenv
     strategy:
       fail-fast: false
       matrix:
