@@ -163,6 +163,11 @@ class Tokenicer():
             model_config.eos_token_id = self.tokenizer.eos_token_id
 
     def __getattribute__(self, name):
+        if name in {
+            "tokenizer",
+        }:
+            return super().__getattribute__(name)
+
         try:
             return super().__getattribute__("tokenizer").__getattribute__(name)
         except AttributeError:
