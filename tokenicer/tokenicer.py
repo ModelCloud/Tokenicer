@@ -94,7 +94,8 @@ class Tokenicer():
                     "Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
-        if not hasattr(model_config, "bos_token_id") and model_config.sub_configs.get("text_config", None):
+        if (not hasattr(model_config, "bos_token_id") and hasattr(model_config, "sub_configs")
+                and model_config.sub_configs.get("text_config", None)):
             model_config = model_config.get_text_config()
 
         self.auto_fix_model_config(model_config)
