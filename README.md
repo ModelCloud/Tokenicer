@@ -15,6 +15,7 @@
 </p>
 
 ## News
+* 03/03/2026 [0.0.7](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.7): Fix Qwen 3.5 MoE compat.
 * 02/09/2026 [0.0.6](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.6): Fix ChatGLM compat. 
 * 09/04/2025 [0.0.5](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.5): Fix `pad_token_id` detection for `LongCat` model. 
 * 02/21/2025 [0.0.4](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.4): ⚡ Now `tokenicer` instance dynamically inherits the `native` `tokenizer.__class__` of tokenizer passed in or loaded via our `tokenicer.load()` api. CI now tests tokenizer compat from `64` different models.
