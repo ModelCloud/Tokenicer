@@ -69,7 +69,9 @@ jobs:
       - name: install requirements
         run: |
           uv pip install parameterized pytest pytest-xdist jinja2 transformers sentencepiece tiktoken protobuf -U
-          uv pip uninstall torch
+          if [[ "${{ matrix.test_script }}" == "test_gemma3.py" || "${{ matrix.test_script }}" == "test_loop_models.py" ]]; then
+            uv pip install torch
+          fi
 
       - name: install
         run: uv pip install .
