@@ -102,7 +102,7 @@ class Tokenicer():
 
         pad_token_id = model_config.pad_token_id
 
-        if pad_token_id is None or pad_token_id in [model_config.bos_token_id, model_config.eos_token_id]:
+        if pad_token_id is None or (hasattr(model_config, "bos_token_id") and hasattr(model_config, "eos_token_id") and pad_token_id in [model_config.bos_token_id, model_config.eos_token_id]):
             pad_token_id = self._auto_map_pad_token(model_config=model_config, pad_tokens=pad_tokens)
 
             if not strict:
@@ -158,7 +158,7 @@ class Tokenicer():
         return pad_token_id
 
     def auto_fix_model_config(self, model_config):
-        if model_config.bos_token_id is None and getattr(self.tokenizer, "bos_token_id", None) is not None:
+        if hasattr(model_config, "bos_token_id") and model_config.bos_token_id is None and getattr(self.tokenizer, "bos_token_id", None) is not None:
             model_config.bos_token = self.tokenizer.bos_token
             model_config.bos_token_id = self.tokenizer.bos_token_id
 
