@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "TokeNicer"
+version = "0.0.7"
+description = "A (nicer) tokenizer you want to use for model `inference` and `training`: with all known peventable `gotchas` normalized or auto-fixed."
+readme = "README.md"
+requires-python = ">=3"
+license = "Apache-2.0"
+authors = [
+    {name = "ModelCloud", email = "qubitium@modelcloud.ai"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/ModelCloud/Tokenicer"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
