@@ -94,9 +94,7 @@ class Tokenicer():
                     "Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
-        if (not hasattr(model_config, "bos_token_id") and hasattr(model_config, "sub_configs")
-                and model_config.sub_configs.get("text_config", None)):
-            model_config = model_config.get_text_config()
+        model_config = self._resolve_text_model_config(model_config)
 
         self.auto_fix_model_config(model_config)
 
@@ -123,6 +121,39 @@ class Tokenicer():
         self.tokenizer.pad_token = self.tokenizer.decode([pad_token_id])
 
         logger.info(f"Tokenicer: Auto fixed pad_token_id={pad_token_id} (token='{self.tokenizer.pad_token}').")
+
+    @staticmethod
+    def _resolve_text_model_config(model_config, seen=None):
+        if model_config is None:
+            return None
+
+        if seen is None:
+            seen = set()
+
+        model_config_id = id(model_config)
+        if model_config_id in seen:
+            return model_config
+        seen.add(model_config_id)
+
+        get_text_config = getattr(model_config, "get_text_config", None)
+        if callable(get_text_config):
+            try:
+                text_model_config = get_text_config()
+            except (AttributeError, TypeError, ValueError):
+                text_model_config = None
+            if text_model_config is not None and text_model_config is not model_config:
+                return Tokenicer._resolve_text_model_config(text_model_config, seen=seen)
+
+        for attr_name in ("text_config", "thinker_config", "thinker"):
+            nested_model_config = getattr(model_config, attr_name, None)
+            if nested_model_config is None or nested_model_config is model_config:
+                continue
+
+            resolved_model_config = Tokenicer._resolve_text_model_config(nested_model_config, seen=seen)
+            if resolved_model_config is not None:
+                return resolved_model_config
+
+        return model_config
 
     def _auto_map_pad_token(self, model_config, pad_tokens) -> Optional[int]:
         pad_token_id = None
