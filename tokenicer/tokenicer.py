@@ -182,8 +182,15 @@ class Tokenicer():
         self.auto_fix_model_config(model_config)
 
         pad_token_id = getattr(model_config, "pad_token_id", None)
+        has_invalid_config_pad = (
+            hasattr(model_config, "bos_token_id")
+            and hasattr(model_config, "eos_token_id")
+            and pad_token_id in [model_config.bos_token_id, model_config.eos_token_id]
+        )
 
-        if pad_token_id is None or (hasattr(model_config, "bos_token_id") and hasattr(model_config, "eos_token_id") and pad_token_id in [model_config.bos_token_id, model_config.eos_token_id]):
+        # Explicit pad token candidates should always be able to override a
+        # previously synchronized config pad_token_id.
+        if pad_tokens is not None or pad_token_id is None or has_invalid_config_pad:
             pad_token_id = self._auto_map_pad_token(model_config=model_config, pad_tokens=pad_tokens)
 
             if not strict:
