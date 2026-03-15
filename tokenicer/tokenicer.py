@@ -160,7 +160,12 @@ class Tokenicer():
                 pad_token_id = getattr(self.tokenizer, "pad_token_id", None)
                 if pad_token_id is not None:
                     if getattr(self.tokenizer, "pad_token", None) is None:
-                        self.tokenizer.pad_token = self.tokenizer.decode([pad_token_id])
+                        # Do not round-trip special token ids through decode().
+                        # decode() returns rendered text, not the canonical token literal,
+                        # and some custom tokenizers intentionally inject formatting.
+                        # ERNIE 4.5 is the concrete regression here: decode([0]) returns
+                        # " <unk>" while the real special token is "<unk>".
+                        self.tokenizer.pad_token = self._token_literal_for_id(pad_token_id)
                     return
 
                 if not strict and getattr(self.tokenizer, "eos_token_id", None) is not None:
@@ -208,7 +213,10 @@ class Tokenicer():
                 )
 
         self.tokenizer.pad_token_id = pad_token_id
-        self.tokenizer.pad_token = self.tokenizer.decode([pad_token_id])
+        # Preserve the canonical special-token spelling instead of using
+        # decode([pad_token_id]). For tokenizers like ERNIE 4.5, decode() is a
+        # detokenization API and may prepend whitespace to special tokens.
+        self.tokenizer.pad_token = self._token_literal_for_id(pad_token_id)
 
         if getattr(model_config, "pad_token_id", None) is None:
             # Keep the resolved text config aligned so downstream callers do
@@ -216,6 +224,39 @@ class Tokenicer():
             model_config.pad_token_id = pad_token_id
 
         logger.info(f"Tokenicer: Auto fixed pad_token_id={pad_token_id} (token='{self.tokenizer.pad_token}').")
+
+    def _token_literal_for_id(self, token_id: int) -> str:
+        # Prefer declared special-token metadata over decode(). The metadata is
+        # the canonical token literal used by save/load, while decode() is a
+        # text-rendering path and may be lossy for standalone special tokens.
+        special_token_attrs = (
+            "pad_token",
+            "unk_token",
+            "eos_token",
+            "bos_token",
+            "cls_token",
+            "sep_token",
+            "mask_token",
+        )
+
+        for attr in special_token_attrs:
+            attr_id = getattr(self.tokenizer, f"{attr}_id", None)
+            attr_value = getattr(self.tokenizer, attr, None)
+            if attr_id == token_id and attr_value is not None:
+                return attr_value
+
+        special_tokens_map = getattr(self.tokenizer, "special_tokens_map", {}) or {}
+        for attr_value in special_tokens_map.values():
+            if isinstance(attr_value, list):
+                for item in attr_value:
+                    if isinstance(item, str) and self.tokenizer.convert_tokens_to_ids(item) == token_id:
+                        return item
+            elif isinstance(attr_value, str) and self.tokenizer.convert_tokens_to_ids(attr_value) == token_id:
+                return attr_value
+
+        # Final fallback for tokenizers that do not expose enough special-token
+        # metadata to recover the literal directly.
+        return self.tokenizer.decode([token_id])
 
     @staticmethod
     def _resolve_text_model_config(model_config, seen=None):

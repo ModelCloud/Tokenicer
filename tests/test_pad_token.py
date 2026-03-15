@@ -30,6 +30,7 @@ class TestPadToken(unittest.TestCase):
             ('/monster/data/model/Llama-3.2-1B-Instruct', '<|finetune_right_pad_id|>'),
             ('/monster/data/model/Qwen2.5-0.5B-Instruct', '<|fim_pad|>'),
             ('/monster/data/model/Qwen2-VL-2B-Instruct', '<|endoftext|>'),
+            ('/monster/data/model/ERNIE-4.5-0.3B-PT/', '<unk>', None, True),
             ('/monster/data/model/gemma-2-9b', '<pad>'),
             ('/monster/data/model/Hymba-1.5B-Instruct', '<unk>', None, True),
             ('/monster/data/model/Mistral-7B-Instruct-v0.2', '<unk>'),
