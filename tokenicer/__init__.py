@@ -14,6 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+from pathlib import Path
+
+
+def _configure_hf_cache():
+    # Keep remote-code modules and model cache writes inside a writable temp tree.
+    hf_home = Path(os.environ.setdefault("HF_HOME", "/tmp/tokenicer_hf_home"))
+    hf_hub_cache = Path(os.environ.setdefault("HF_HUB_CACHE", str(hf_home / "hub")))
+    transformers_cache = Path(os.environ.setdefault("TRANSFORMERS_CACHE", str(hf_hub_cache)))
+    hf_modules_cache = Path(os.environ.setdefault("HF_MODULES_CACHE", str(hf_home / "modules")))
+
+    for cache_dir in (hf_home, hf_hub_cache, transformers_cache, hf_modules_cache):
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+
+_configure_hf_cache()
+
 from .tokenicer import Tokenicer
 
 __all__ = ["Tokenicer"]

@@ -15,12 +15,22 @@
 # limitations under the License.
 
 import logging
+from importlib import import_module
 from typing import List, Optional, Union
 
 from transformers import AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
+from transformers.dynamic_module_utils import get_class_from_dynamic_module
 
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
-from .util import auto_config, candidate_id, config_path
+from .util import (
+    auto_config,
+    candidate_id,
+    config_path,
+    custom_tokenizer_class_ref,
+    has_custom_tokenizer_code,
+    tokenizer_class_name,
+    tokenizer_special_token_overrides,
+)
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -42,7 +52,7 @@ class Tokenicer():
             tokenizer = pretrained_model_name_or_path
             path = config_path(tokenizer)
         elif isinstance(pretrained_model_name_or_path, str):
-            tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **kwargs)
+            tokenizer = cls._load_tokenizer(pretrained_model_name_or_path, **kwargs)
             if isinstance(tokenizer, PreTrainedTokenizerBase):
                 path = pretrained_model_name_or_path
             else:
@@ -68,6 +78,53 @@ class Tokenicer():
         t.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
         return t
 
+    @staticmethod
+    def _load_tokenizer(pretrained_model_name_or_path: str, **kwargs):
+        try:
+            # Keep the normal Transformers path first so standard checkpoints behave unchanged.
+            return AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **kwargs)
+        except (AttributeError, OSError, RecursionError, TypeError, ValueError):
+            overrides = tokenizer_special_token_overrides(pretrained_model_name_or_path)
+            retry_kwargs = dict(kwargs)
+            retry_kwargs.update(overrides)
+
+            tokenizer_cls_name = tokenizer_class_name(pretrained_model_name_or_path)
+            if tokenizer_cls_name is not None:
+                # Some checkpoints have a valid tokenizer_config.json even when config auto-detection is broken.
+                transformers_module = import_module("transformers")
+                tokenizer_cls = getattr(transformers_module, tokenizer_cls_name, None)
+                if tokenizer_cls is not None:
+                    logger.warning(
+                        "Tokenicer: Retrying tokenizer load via `%s.from_pretrained()` for `%s`.",
+                        tokenizer_cls_name,
+                        pretrained_model_name_or_path,
+                    )
+                    return tokenizer_cls.from_pretrained(pretrained_model_name_or_path, **retry_kwargs)
+
+            custom_class_ref = custom_tokenizer_class_ref(pretrained_model_name_or_path)
+            if custom_class_ref is not None:
+                # Load the declared custom tokenizer class directly to bypass bad fallback config parsing.
+                logger.warning(
+                    "Tokenicer: Retrying tokenizer load via dynamic tokenizer class `%s` for `%s`.",
+                    custom_class_ref,
+                    pretrained_model_name_or_path,
+                )
+                tokenizer_cls = get_class_from_dynamic_module(custom_class_ref, pretrained_model_name_or_path)
+                retry_kwargs.pop("trust_remote_code", None)
+                return tokenizer_cls.from_pretrained(pretrained_model_name_or_path, trust_remote_code=True, **retry_kwargs)
+
+            if kwargs.get("trust_remote_code", False) or not has_custom_tokenizer_code(pretrained_model_name_or_path):
+                raise
+
+            retry_kwargs = dict(kwargs)
+            retry_kwargs["trust_remote_code"] = True
+            # Local checkpoints with custom tokenizer code can still succeed once remote code is explicitly allowed.
+            logger.warning(
+                "Tokenicer: Retrying tokenizer load with `trust_remote_code=True` for local custom tokenizer `%s`.",
+                pretrained_model_name_or_path,
+            )
+            return AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **retry_kwargs)
+
     def auto_fix_pad_token(
         self,
         model_or_path: Optional[Union[str, PreTrainedModel]] = None,
@@ -89,6 +146,21 @@ class Tokenicer():
             if self.model_config is not None:
                 model_config = self.model_config
             else:
+                # Tokenizer-only bundles can still preserve an existing pad/eos setup without model config.
+                pad_token_id = getattr(self.tokenizer, "pad_token_id", None)
+                if pad_token_id is not None:
+                    if getattr(self.tokenizer, "pad_token", None) is None:
+                        self.tokenizer.pad_token = self.tokenizer.decode([pad_token_id])
+                    return
+
+                if not strict and getattr(self.tokenizer, "eos_token_id", None) is not None:
+                    self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+                    self.tokenizer.pad_token = self.tokenizer.eos_token
+                    logger.warning(
+                        "Tokenicer: No model config found; falling back to tokenizer.eos_token as pad_token."
+                    )
+                    return
+
                 raise ValueError(
                     "Tokenicer: Auto model config retrieval from `pretrained_model_name_or_path` failed. "
                     "Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
@@ -98,7 +170,7 @@ class Tokenicer():
 
         self.auto_fix_model_config(model_config)
 
-        pad_token_id = model_config.pad_token_id
+        pad_token_id = getattr(model_config, "pad_token_id", None)
 
         if pad_token_id is None or (hasattr(model_config, "bos_token_id") and hasattr(model_config, "eos_token_id") and pad_token_id in [model_config.bos_token_id, model_config.eos_token_id]):
             pad_token_id = self._auto_map_pad_token(model_config=model_config, pad_tokens=pad_tokens)
@@ -144,6 +216,7 @@ class Tokenicer():
             if text_model_config is not None and text_model_config is not model_config:
                 return Tokenicer._resolve_text_model_config(text_model_config, seen=seen)
 
+        # Older multimodal configs may keep the text decoder under thinker/text_config rather than top-level.
         for attr_name in ("text_config", "thinker_config", "thinker"):
             nested_model_config = getattr(model_config, attr_name, None)
             if nested_model_config is None or nested_model_config is model_config:
@@ -168,8 +241,9 @@ class Tokenicer():
             return self.tokenizer.pad_token_id
 
         # Match MODEL_PAD_TOKEN_MAP to get pad token
-        if pad_token_id is None and MODEL_PAD_TOKEN_MAP.get(model_config.model_type, None) is not None:
-            token_tuple = MODEL_PAD_TOKEN_MAP.get(model_config.model_type)
+        model_type = getattr(model_config, "model_type", None)
+        if pad_token_id is None and MODEL_PAD_TOKEN_MAP.get(model_type, None) is not None:
+            token_tuple = MODEL_PAD_TOKEN_MAP.get(model_type)
             pad_token = token_tuple.token
             token_id = vocab.get(pad_token, None)
             if token_id is not None and token_id == token_tuple.token_id:
@@ -181,19 +255,20 @@ class Tokenicer():
 
         # Use eos_token as pad token
         if pad_token_id is None:
-            if isinstance(model_config.eos_token_id, list) and model_config.eos_token_id:
-                pad_token_id = model_config.eos_token_id[0]
+            eos_token_id = getattr(model_config, "eos_token_id", None)
+            if isinstance(eos_token_id, list) and eos_token_id:
+                pad_token_id = eos_token_id[0]
             else:
-                pad_token_id = model_config.eos_token_id
+                pad_token_id = eos_token_id
 
         return pad_token_id
 
     def auto_fix_model_config(self, model_config):
-        if hasattr(model_config, "bos_token_id") and model_config.bos_token_id is None and getattr(self.tokenizer, "bos_token_id", None) is not None:
+        if getattr(model_config, "bos_token_id", None) is None and getattr(self.tokenizer, "bos_token_id", None) is not None:
             model_config.bos_token = self.tokenizer.bos_token
             model_config.bos_token_id = self.tokenizer.bos_token_id
 
-        if model_config.eos_token_id is None and getattr(self.tokenizer, "eos_token_id", None) is not None:
+        if getattr(model_config, "eos_token_id", None) is None and getattr(self.tokenizer, "eos_token_id", None) is not None:
             model_config.eos_token = self.tokenizer.eos_token
             model_config.eos_token_id = self.tokenizer.eos_token_id
 

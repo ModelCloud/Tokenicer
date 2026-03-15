@@ -62,11 +62,24 @@ class TestGemma3(unittest.TestCase):
             messages,
             tokenize=True,
             return_tensors="pt",
-        ).tolist()[0]
+        )
+
+        if hasattr(chat_template_inputs, "get"):
+            input_ids = chat_template_inputs.get("input_ids")
+            if input_ids is not None:
+                chat_template_inputs = input_ids
+
+        if hasattr(chat_template_inputs, "tolist"):
+            chat_template_inputs = chat_template_inputs.tolist()
+
+        if chat_template_inputs and hasattr(chat_template_inputs[0], "ids"):
+            chat_template_inputs = chat_template_inputs[0].ids
+
+        if chat_template_inputs and isinstance(chat_template_inputs[0], list):
+            chat_template_inputs = chat_template_inputs[0]
 
         self.assertEqual(
             chat_template_inputs[0],
             self.expect_first_token_id,
             msg=f"Expected func `tokenizer.apply_chat_template()` first_token_id=`{self.expect_first_token_id}`, actual=`{chat_template_inputs[0]}`."
         )
-
