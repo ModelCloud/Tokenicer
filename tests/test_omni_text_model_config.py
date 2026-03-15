@@ -2,6 +2,7 @@ import unittest
 import types
 from pathlib import Path
 import sys
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -111,6 +112,30 @@ class TestOmniTextModelConfig(unittest.TestCase):
                 return text_config
 
         wrapped = Tokenicer.load(tokenizer, model_config=CompositeConfig())
+
+        self.assertIs(wrapped.model_config, text_config)
+        self.assertEqual(text_config.pad_token_id, tokenizer.pad_token_id)
+        self.assertEqual(text_config.eos_token_id, tokenizer.eos_token_id)
+
+    def test_load_prefers_explicit_model_config_over_auto_config_for_string_paths(self):
+        backend = Tokenizer(WordLevel({"<pad>": 0, "<eos>": 1, "hello": 2}, unk_token="<pad>"))
+        backend.pre_tokenizer = Whitespace()
+        tokenizer = PreTrainedTokenizerFast(tokenizer_object=backend, pad_token="<pad>", eos_token="<eos>")
+
+        text_config = types.SimpleNamespace(
+            model_type="qwen2_5_omni_text",
+            pad_token_id=None,
+            bos_token_id=None,
+            eos_token_id=None,
+        )
+
+        class CompositeConfig:
+            def get_text_config(self):
+                return text_config
+
+        with patch.object(Tokenicer, "_load_tokenizer", return_value=tokenizer):
+            with patch("tokenicer.tokenicer.auto_config", side_effect=AssertionError("auto_config should not run")):
+                wrapped = Tokenicer.load("/tmp/fake-model", model_config=CompositeConfig())
 
         self.assertIs(wrapped.model_config, text_config)
         self.assertEqual(text_config.pad_token_id, tokenizer.pad_token_id)
