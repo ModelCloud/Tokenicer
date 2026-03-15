@@ -21,7 +21,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "TokeNicer"
-version = "0.0.9"
+version = "0.0.10"
 description = "A (nicer) tokenizer you want to use for model `inference` and `training`: with all known peventable `gotchas` normalized or auto-fixed."
 readme = "README.md"
 requires-python = ">=3"

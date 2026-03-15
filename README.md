@@ -75,6 +75,13 @@ tokenizer = Tokenicer.load('Qwen/Qwen2.5-0.5B-Instruct')
 print(f"pad_token: `{tokenizer.pad_token}`")
 ```
 
+* If you already have a loaded or composite config, pass it directly so Tokenicer
+  can normalize the resolved text config in-place:
+
+```py
+tokenizer = Tokenicer.load(tokenizer, model_config=model.config)
+```
+
 ## Citation
 
 ```
