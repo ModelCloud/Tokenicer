@@ -16,7 +16,7 @@
 
 import logging
 from importlib import import_module
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from transformers import AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
 from transformers.dynamic_module_utils import get_class_from_dynamic_module
@@ -42,7 +42,14 @@ class Tokenicer():
         pass
 
     @classmethod
-    def load(cls, pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase], strict: bool = False, pad_tokens: Optional[List[Union[str, int]]] = None, **kwargs):
+    def load(
+        cls,
+        pretrained_model_name_or_path: Union[str, PreTrainedTokenizerBase],
+        strict: bool = False,
+        pad_tokens: Optional[List[Union[str, int]]] = None,
+        model_config: Any = None,
+        **kwargs,
+    ):
         if pretrained_model_name_or_path is None:
             raise ValueError("Tokenicer: `pretrained_model_name_or_path` cannot be `None`.")
 
@@ -60,12 +67,15 @@ class Tokenicer():
         else:
             raise ValueError(f"Tokenicer: Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
 
-        model_config = auto_config(path, trust_remote_code)
-
         if model_config is None:
+            model_config = auto_config(path, trust_remote_code)
+
+        resolved_model_config = cls._resolve_text_model_config(model_config)
+
+        if resolved_model_config is None:
             logger.warning(
                 "Tokenicer: Auto model config retrieval from `pretrained_model_name_or_path` failed. "
-                "Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
+                "Please pass `model_config=` to `load()` or a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
         # dynamically change Tokenicer's type to tokenizer's
@@ -74,7 +84,7 @@ class Tokenicer():
 
         t = tokenicer_cls_wrapper()
         t.tokenizer = tokenizer
-        t.model_config = model_config
+        t.model_config = resolved_model_config
         t.auto_fix_pad_token(strict=strict, pad_tokens=pad_tokens)
         return t
 
@@ -163,16 +173,24 @@ class Tokenicer():
 
                 raise ValueError(
                     "Tokenicer: Auto model config retrieval from `pretrained_model_name_or_path` failed. "
-                    "Please pass a valid `model_or_path` argument to `auto_assign_pad_token()`.",
+                    "Please pass `model_config=` to `load()` or a valid `model_or_path` argument to `auto_assign_pad_token()`.",
             )
 
         model_config = self._resolve_text_model_config(model_config)
+        self.model_config = model_config
 
         self.auto_fix_model_config(model_config)
 
         pad_token_id = getattr(model_config, "pad_token_id", None)
+        has_invalid_config_pad = (
+            hasattr(model_config, "bos_token_id")
+            and hasattr(model_config, "eos_token_id")
+            and pad_token_id in [model_config.bos_token_id, model_config.eos_token_id]
+        )
 
-        if pad_token_id is None or (hasattr(model_config, "bos_token_id") and hasattr(model_config, "eos_token_id") and pad_token_id in [model_config.bos_token_id, model_config.eos_token_id]):
+        # Explicit pad token candidates should always be able to override a
+        # previously synchronized config pad_token_id.
+        if pad_tokens is not None or pad_token_id is None or has_invalid_config_pad:
             pad_token_id = self._auto_map_pad_token(model_config=model_config, pad_tokens=pad_tokens)
 
             if not strict:
@@ -191,6 +209,11 @@ class Tokenicer():
 
         self.tokenizer.pad_token_id = pad_token_id
         self.tokenizer.pad_token = self.tokenizer.decode([pad_token_id])
+
+        if getattr(model_config, "pad_token_id", None) is None:
+            # Keep the resolved text config aligned so downstream callers do
+            # not need their own tokenizer-to-config synchronization wrapper.
+            model_config.pad_token_id = pad_token_id
 
         logger.info(f"Tokenicer: Auto fixed pad_token_id={pad_token_id} (token='{self.tokenizer.pad_token}').")
 
