@@ -16,6 +16,7 @@
 
 import json
 import os
+import types
 from typing import List, Optional, Union
 
 from transformers import AutoConfig, PretrainedConfig
@@ -48,12 +49,68 @@ def auto_config(path, trust_remote) -> Optional[PretrainedConfig]:
     try:
         config = AutoConfig.from_pretrained(path, trust_remote_code=trust_remote)
     except Exception:
-        # Tokenizer-only bundles and malformed local configs should not block tokenizer loading.
-        return None
+        config_dict = _load_config_dict(path)
+        if config_dict is None:
+            # Tokenizer-only bundles and malformed local configs should not block tokenizer loading.
+            return None
+
+        # Transformers can be strict about custom fields, while this repo keeps
+        # heterogeneous checkpoints locally. Keep the raw JSON payload for best-effort
+        # config compatibility.
+        config = _namespace_from_dict(config_dict)
+        if "_name_or_path" not in config_dict:
+            config._name_or_path = path
+
+        # Preserve multimodal nested text config to keep compatibility with callers
+        # that expect `get_text_config()`.
+        text_config = getattr(config, "text_config", None)
+        if text_config is not None:
+
+            def _get_text_config():
+                return text_config
+
+            config.get_text_config = _get_text_config
+
+        return config
+
     model_config = None
     if isinstance(config, PretrainedConfig):
         model_config = config
     return model_config
+
+
+def _load_config_dict(path) -> Optional[dict]:
+    if not isinstance(path, str) or not os.path.isdir(path):
+        return None
+
+    config_path = os.path.join(path, "config.json")
+    if not os.path.exists(config_path):
+        return None
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return None
+
+    if not isinstance(data, dict):
+        return None
+
+    return data
+
+
+def _namespace_from_dict(data: dict):
+    if not isinstance(data, dict):
+        return data
+
+    if isinstance(data, types.SimpleNamespace):
+        return data
+
+    values = {}
+    for key, value in data.items():
+        values[key] = _namespace_from_dict(value) if isinstance(value, dict) else value
+
+    return types.SimpleNamespace(**values)
 
 
 def has_custom_tokenizer_code(path) -> bool:

@@ -15,16 +15,26 @@
 # limitations under the License.
 
 import logging
+import os
+import warnings
 from importlib import import_module
 from typing import Any, List, Optional, Union
 
-from transformers import AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
+from transformers import (
+    AutoTokenizer,
+    PreTrainedModel,
+    PreTrainedTokenizerBase,
+)
 from transformers.dynamic_module_utils import get_class_from_dynamic_module
+
+try:
+    from huggingface_hub.errors import StrictDataclassFieldValidationError
+except Exception:  # pragma: no cover - optional dependency path
+    StrictDataclassFieldValidationError = None
 
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
 from .util import (
     auto_config,
-    candidate_id,
     config_path,
     custom_tokenizer_class_ref,
     has_custom_tokenizer_code,
@@ -35,11 +45,48 @@ from .util import (
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+_TOKENIZER_LOAD_EXCEPTIONS = (
+    AttributeError,
+    OSError,
+    RecursionError,
+    TypeError,
+    ValueError,
+    KeyError,
+)
+
+if StrictDataclassFieldValidationError is not None:
+    _TOKENIZER_LOAD_EXCEPTIONS = _TOKENIZER_LOAD_EXCEPTIONS + (StrictDataclassFieldValidationError,)
+
+_KNOWN_LOAD_WARNING_SUPPRESSIONS = [
+    (
+        ("opt-125",),
+        DeprecationWarning,
+        r"Deprecated in 0\.9\.0: BPE\.__init__ will not create from files anymore, try `BPE\.from_file` instead",
+    ),
+    (
+        ("Qwen3-Omni-30B-A3B-Instruct",),
+        DeprecationWarning,
+        r"Deprecated in 0\.9\.0: BPE\.__init__ will not create from files anymore, try `BPE\.from_file` instead",
+    ),
+    (
+        ("LongCat-Flash-Chat",),
+        FutureWarning,
+        r"`rope_config_validation` is deprecated and has been removed\..*",
+    ),
+    (
+        ("OpenCoder-8B-Instruct",),
+        SyntaxWarning,
+        "invalid escape sequence '\\\\p'",
+    ),
+]
+
 
 class Tokenicer():
 
     def __init__(self):
         pass
+
+    _compatibility_shims_installed = False
 
     @classmethod
     def load(
@@ -55,22 +102,27 @@ class Tokenicer():
 
         trust_remote_code = kwargs.get('trust_remote_code', False)
 
-        if isinstance(pretrained_model_name_or_path, PreTrainedTokenizerBase):
-            tokenizer = pretrained_model_name_or_path
-            path = config_path(tokenizer)
-        elif isinstance(pretrained_model_name_or_path, str):
-            tokenizer = cls._load_tokenizer(pretrained_model_name_or_path, **kwargs)
-            if isinstance(tokenizer, PreTrainedTokenizerBase):
-                path = pretrained_model_name_or_path
+        warning_filters = cls._warning_filters(pretrained_model_name_or_path)
+        with warnings.catch_warnings():
+            for category, message in warning_filters:
+                warnings.filterwarnings("ignore", category=category, message=message)
+
+            if isinstance(pretrained_model_name_or_path, PreTrainedTokenizerBase):
+                tokenizer = pretrained_model_name_or_path
+                path = config_path(tokenizer)
+            elif isinstance(pretrained_model_name_or_path, str):
+                tokenizer = cls._load_tokenizer(pretrained_model_name_or_path, **kwargs)
+                if isinstance(tokenizer, PreTrainedTokenizerBase):
+                    path = pretrained_model_name_or_path
+                else:
+                    raise ValueError("Tokenicer: Failed to initialize `tokenizer`: please ensure the `pretrained_model_name_or_path` is set correctly.")
             else:
-                raise ValueError("Tokenicer: Failed to initialize `tokenizer`: please ensure the `pretrained_model_name_or_path` is set correctly.")
-        else:
-            raise ValueError(f"Tokenicer: Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
+                raise ValueError(f"Tokenicer: Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
 
-        if model_config is None:
-            model_config = auto_config(path, trust_remote_code)
+            if model_config is None:
+                model_config = auto_config(path, trust_remote_code)
 
-        resolved_model_config = cls._resolve_text_model_config(model_config)
+            resolved_model_config = cls._resolve_text_model_config(model_config)
 
         if resolved_model_config is None:
             logger.warning(
@@ -90,10 +142,11 @@ class Tokenicer():
 
     @staticmethod
     def _load_tokenizer(pretrained_model_name_or_path: str, **kwargs):
+        Tokenicer._install_tokenizer_compatibility_shims()
         try:
             # Keep the normal Transformers path first so standard checkpoints behave unchanged.
             return AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **kwargs)
-        except (AttributeError, OSError, RecursionError, TypeError, ValueError):
+        except _TOKENIZER_LOAD_EXCEPTIONS:
             overrides = tokenizer_special_token_overrides(pretrained_model_name_or_path)
             retry_kwargs = dict(kwargs)
             retry_kwargs.update(overrides)
@@ -101,8 +154,10 @@ class Tokenicer():
             tokenizer_cls_name = tokenizer_class_name(pretrained_model_name_or_path)
             if tokenizer_cls_name is not None:
                 # Some checkpoints have a valid tokenizer_config.json even when config auto-detection is broken.
-                transformers_module = import_module("transformers")
-                tokenizer_cls = getattr(transformers_module, tokenizer_cls_name, None)
+                tokenizer_cls = Tokenicer._resolve_tokenizer_class(
+                    pretrained_model_name_or_path,
+                    tokenizer_cls_name,
+                )
                 if tokenizer_cls is not None:
                     logger.warning(
                         "Tokenicer: Retrying tokenizer load via `%s.from_pretrained()` for `%s`.",
@@ -114,14 +169,21 @@ class Tokenicer():
             custom_class_ref = custom_tokenizer_class_ref(pretrained_model_name_or_path)
             if custom_class_ref is not None:
                 # Load the declared custom tokenizer class directly to bypass bad fallback config parsing.
-                logger.warning(
-                    "Tokenicer: Retrying tokenizer load via dynamic tokenizer class `%s` for `%s`.",
-                    custom_class_ref,
-                    pretrained_model_name_or_path,
-                )
-                tokenizer_cls = get_class_from_dynamic_module(custom_class_ref, pretrained_model_name_or_path)
-                retry_kwargs.pop("trust_remote_code", None)
-                return tokenizer_cls.from_pretrained(pretrained_model_name_or_path, trust_remote_code=True, **retry_kwargs)
+                try:
+                    logger.warning(
+                        "Tokenicer: Retrying tokenizer load via dynamic tokenizer class `%s` for `%s`.",
+                        custom_class_ref,
+                        pretrained_model_name_or_path,
+                    )
+                    tokenizer_cls = get_class_from_dynamic_module(custom_class_ref, pretrained_model_name_or_path)
+                    retry_kwargs.pop("trust_remote_code", None)
+                    return tokenizer_cls.from_pretrained(pretrained_model_name_or_path, trust_remote_code=True, **retry_kwargs)
+                except Exception:
+                    logger.warning(
+                        "Tokenicer: Failed custom tokenizer load via `%s` for `%s`, trying local tokenizer files.",
+                        custom_class_ref,
+                        pretrained_model_name_or_path,
+                    )
 
             if kwargs.get("trust_remote_code", False) or not has_custom_tokenizer_code(pretrained_model_name_or_path):
                 raise
@@ -134,6 +196,83 @@ class Tokenicer():
                 pretrained_model_name_or_path,
             )
             return AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **retry_kwargs)
+
+    @staticmethod
+    def _warning_filters(pretrained_model_name_or_path):
+        if not isinstance(pretrained_model_name_or_path, str):
+            return []
+
+        model_path = pretrained_model_name_or_path
+        for model_parts, warning_category, pattern in _KNOWN_LOAD_WARNING_SUPPRESSIONS:
+            if any(part in model_path for part in model_parts):
+                yield warning_category, pattern
+
+    @staticmethod
+    def _install_tokenizer_compatibility_shims():
+        if Tokenicer._compatibility_shims_installed:
+            return
+
+        Tokenicer._compatibility_shims_installed = True
+
+        # Kimi tokenizer snapshots may import bytes_to_unicode from a module path
+        # that has moved in newer transformers.
+        try:
+            from transformers.convert_slow_tokenizer import bytes_to_unicode
+            from transformers.models.gpt2 import tokenization_gpt2
+
+            if not hasattr(tokenization_gpt2, "bytes_to_unicode"):
+                tokenization_gpt2.bytes_to_unicode = bytes_to_unicode
+        except Exception:
+            return
+
+    @staticmethod
+    def _resolve_tokenizer_class(
+        pretrained_model_name_or_path: str,
+        tokenizer_cls_name: str,
+    ):
+        import transformers
+
+        if tokenizer_cls_name == "PreTrainedTokenizer":
+            return getattr(transformers, "PreTrainedTokenizerFast", None)
+
+        tokenizer_cls = getattr(transformers, tokenizer_cls_name, None)
+        if tokenizer_cls is not None:
+            # Some checkpoints only expose a base tokenizer marker in
+            # tokenizer_config.json. Prefer the fast implementation.
+            return tokenizer_cls
+
+        # Handle explicit module references in config (e.g. tokenization_kimi.Tokenizer).
+        if "." in tokenizer_cls_name:
+            module_name, class_name = tokenizer_cls_name.rsplit(".", 1)
+            try:
+                module = import_module(module_name)
+                tokenizer_cls = getattr(module, class_name, None)
+            except Exception:
+                tokenizer_cls = None
+            if tokenizer_cls is not None:
+                return tokenizer_cls
+
+        # Fallback scan local tokenizer files for custom class names.
+        if not isinstance(pretrained_model_name_or_path, str) or not os.path.isdir(pretrained_model_name_or_path):
+            return None
+
+        local_modules = [
+            f[:-3]
+            for f in os.listdir(pretrained_model_name_or_path)
+            if f.endswith(".py") and (f.startswith("tokenization_") or f in {"tiktoken.py"})
+        ]
+
+        for module_name in local_modules:
+            try:
+                tokenizer_cls = get_class_from_dynamic_module(
+                    f"{module_name}.{tokenizer_cls_name}",
+                    pretrained_model_name_or_path,
+                )
+                return tokenizer_cls
+            except Exception:
+                pass
+
+        return None
 
     def auto_fix_pad_token(
         self,
@@ -295,11 +434,9 @@ class Tokenicer():
     def _auto_map_pad_token(self, model_config, pad_tokens) -> Optional[int]:
         pad_token_id = None
 
-        vocab = self.tokenizer.get_vocab()
-
         # Prioritize matching of pad token entered by the user
         if pad_tokens is not None:
-            pad_token_id = candidate_id(pad_tokens, vocab)
+            pad_token_id = self._candidate_id_from_tokenizer(pad_tokens)
 
         if pad_tokens is None and getattr(self.tokenizer, "pad_token_id", None) is not None:
             return self.tokenizer.pad_token_id
@@ -308,14 +445,13 @@ class Tokenicer():
         model_type = getattr(model_config, "model_type", None)
         if pad_token_id is None and MODEL_PAD_TOKEN_MAP.get(model_type, None) is not None:
             token_tuple = MODEL_PAD_TOKEN_MAP.get(model_type)
-            pad_token = token_tuple.token
-            token_id = vocab.get(pad_token, None)
+            token_id = self._candidate_id_from_tokenizer([token_tuple.token])
             if token_id is not None and token_id == token_tuple.token_id:
                 pad_token_id = token_id
 
         # Match DEFAULT_PAD_TOKENS to get pad token
         if pad_token_id is None:
-            pad_token_id = candidate_id(DEFAULT_PAD_TOKENS, vocab)
+            pad_token_id = self._candidate_id_from_tokenizer(DEFAULT_PAD_TOKENS)
 
         # Use eos_token as pad token
         if pad_token_id is None:
@@ -332,9 +468,33 @@ class Tokenicer():
             model_config.bos_token = self.tokenizer.bos_token
             model_config.bos_token_id = self.tokenizer.bos_token_id
 
-        if getattr(model_config, "eos_token_id", None) is None and getattr(self.tokenizer, "eos_token_id", None) is not None:
-            model_config.eos_token = self.tokenizer.eos_token
-            model_config.eos_token_id = self.tokenizer.eos_token_id
+        tokenizer_eos_token_id = self._tokenizer_eos_token_id()
+        if getattr(model_config, "eos_token_id", None) is None and tokenizer_eos_token_id is not None:
+            model_config.eos_token = self._token_literal_for_id(tokenizer_eos_token_id)
+            model_config.eos_token_id = tokenizer_eos_token_id
+
+    def _candidate_id_from_tokenizer(self, token_list: List[Union[str, int]]) -> Optional[int]:
+        vocab = self.tokenizer.get_vocab()
+
+        for item in token_list:
+            if isinstance(item, str):
+                token_id = vocab.get(item)
+                if token_id is None:
+                    token_id = self.tokenizer.convert_tokens_to_ids(item)
+                if isinstance(token_id, int) and token_id >= 0:
+                    return token_id
+            elif isinstance(item, int) and 0 <= item < len(self.tokenizer):
+                return item
+
+        return None
+
+    def _tokenizer_eos_token_id(self) -> Optional[int]:
+        eos_token_id = getattr(self.tokenizer, "eos_token_id", None)
+        if isinstance(eos_token_id, list):
+            return eos_token_id[0] if eos_token_id else None
+        if eos_token_id is not None:
+            return eos_token_id
+        return getattr(self.tokenizer, "eod_id", None)
 
     def __getattribute__(self, name):
         if name in {
@@ -349,6 +509,21 @@ class Tokenicer():
 
     def __getattr__(self, name):
         return getattr(self.tokenizer, name)
+
+    def __setattr__(self, name, value):
+        if name in {"tokenizer", "model_config"}:
+            return super().__setattr__(name, value)
+
+        try:
+            tokenizer = super().__getattribute__("tokenizer")
+        except AttributeError:
+            tokenizer = None
+        if tokenizer is not None and hasattr(tokenizer, name):
+            # Tokenicer proxies tokenizer reads through `self.tokenizer`, so mutable tokenizer
+            # fields like `padding_side` must also write through to the wrapped tokenizer.
+            return setattr(tokenizer, name, value)
+
+        return super().__setattr__(name, value)
 
     def __call__(self, data, **kwargs):
         return self.tokenizer(data, **kwargs)
