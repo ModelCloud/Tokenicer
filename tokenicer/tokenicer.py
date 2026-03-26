@@ -350,5 +350,20 @@ class Tokenicer():
     def __getattr__(self, name):
         return getattr(self.tokenizer, name)
 
+    def __setattr__(self, name, value):
+        if name in {"tokenizer", "model_config"}:
+            return super().__setattr__(name, value)
+
+        try:
+            tokenizer = super().__getattribute__("tokenizer")
+        except AttributeError:
+            tokenizer = None
+        if tokenizer is not None and hasattr(tokenizer, name):
+            # Tokenicer proxies tokenizer reads through `self.tokenizer`, so mutable tokenizer
+            # fields like `padding_side` must also write through to the wrapped tokenizer.
+            return setattr(tokenizer, name, value)
+
+        return super().__setattr__(name, value)
+
     def __call__(self, data, **kwargs):
         return self.tokenizer(data, **kwargs)
