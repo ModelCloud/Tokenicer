@@ -35,7 +35,6 @@ except Exception:  # pragma: no cover - optional dependency path
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
 from .util import (
     auto_config,
-    candidate_id,
     config_path,
     custom_tokenizer_class_ref,
     has_custom_tokenizer_code,
@@ -435,11 +434,9 @@ class Tokenicer():
     def _auto_map_pad_token(self, model_config, pad_tokens) -> Optional[int]:
         pad_token_id = None
 
-        vocab = self.tokenizer.get_vocab()
-
         # Prioritize matching of pad token entered by the user
         if pad_tokens is not None:
-            pad_token_id = candidate_id(pad_tokens, vocab)
+            pad_token_id = self._candidate_id_from_tokenizer(pad_tokens)
 
         if pad_tokens is None and getattr(self.tokenizer, "pad_token_id", None) is not None:
             return self.tokenizer.pad_token_id
@@ -448,14 +445,13 @@ class Tokenicer():
         model_type = getattr(model_config, "model_type", None)
         if pad_token_id is None and MODEL_PAD_TOKEN_MAP.get(model_type, None) is not None:
             token_tuple = MODEL_PAD_TOKEN_MAP.get(model_type)
-            pad_token = token_tuple.token
-            token_id = vocab.get(pad_token, None)
+            token_id = self._candidate_id_from_tokenizer([token_tuple.token])
             if token_id is not None and token_id == token_tuple.token_id:
                 pad_token_id = token_id
 
         # Match DEFAULT_PAD_TOKENS to get pad token
         if pad_token_id is None:
-            pad_token_id = candidate_id(DEFAULT_PAD_TOKENS, vocab)
+            pad_token_id = self._candidate_id_from_tokenizer(DEFAULT_PAD_TOKENS)
 
         # Use eos_token as pad token
         if pad_token_id is None:
@@ -472,9 +468,33 @@ class Tokenicer():
             model_config.bos_token = self.tokenizer.bos_token
             model_config.bos_token_id = self.tokenizer.bos_token_id
 
-        if getattr(model_config, "eos_token_id", None) is None and getattr(self.tokenizer, "eos_token_id", None) is not None:
-            model_config.eos_token = self.tokenizer.eos_token
-            model_config.eos_token_id = self.tokenizer.eos_token_id
+        tokenizer_eos_token_id = self._tokenizer_eos_token_id()
+        if getattr(model_config, "eos_token_id", None) is None and tokenizer_eos_token_id is not None:
+            model_config.eos_token = self._token_literal_for_id(tokenizer_eos_token_id)
+            model_config.eos_token_id = tokenizer_eos_token_id
+
+    def _candidate_id_from_tokenizer(self, token_list: List[Union[str, int]]) -> Optional[int]:
+        vocab = self.tokenizer.get_vocab()
+
+        for item in token_list:
+            if isinstance(item, str):
+                token_id = vocab.get(item)
+                if token_id is None:
+                    token_id = self.tokenizer.convert_tokens_to_ids(item)
+                if isinstance(token_id, int) and token_id >= 0:
+                    return token_id
+            elif isinstance(item, int) and 0 <= item < len(self.tokenizer):
+                return item
+
+        return None
+
+    def _tokenizer_eos_token_id(self) -> Optional[int]:
+        eos_token_id = getattr(self.tokenizer, "eos_token_id", None)
+        if isinstance(eos_token_id, list):
+            return eos_token_id[0] if eos_token_id else None
+        if eos_token_id is not None:
+            return eos_token_id
+        return getattr(self.tokenizer, "eod_id", None)
 
     def __getattribute__(self, name):
         if name in {
