@@ -49,7 +49,7 @@ jobs:
     needs:
       - list-test-files
     container:
-      image: 10.0.13.31:5000/nvidia/cuda:130-ubuntu24.04_0325
+      image: 10.0.13.31:5000/nvidia/cuda:130-ubuntu24.04_0415
       volumes:
         - /monster/ci/env/entrypoint.sh:/etc/profile.d/01-entrypoint.sh
         - /monster/ci/models:/monster/data/model
