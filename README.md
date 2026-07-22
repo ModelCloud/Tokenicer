@@ -15,6 +15,7 @@
 </p>
 
 ## News
+* 07/22/2026 [0.0.14](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.14): Auto-fix affected Mistral-family tokenizer regexes, including Laguna S 2.1.
 * 03/03/2026 [0.0.7](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.7): Fix Qwen 3.5 MoE compat.
 * 02/09/2026 [0.0.6](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.6): Fix ChatGLM compat. 
 * 09/04/2025 [0.0.5](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.5): Fix `pad_token_id` detection for `LongCat` model. 

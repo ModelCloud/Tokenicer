@@ -28,9 +28,14 @@ from transformers import (
 from transformers.dynamic_module_utils import get_class_from_dynamic_module
 
 try:
-    from huggingface_hub.errors import StrictDataclassFieldValidationError
+    from huggingface_hub.errors import StrictDataclassError
 except Exception:  # pragma: no cover - optional dependency path
-    StrictDataclassFieldValidationError = None
+    try:
+        # Compatibility with huggingface_hub versions that expose only the
+        # concrete field-validation error.
+        from huggingface_hub.errors import StrictDataclassFieldValidationError as StrictDataclassError
+    except Exception:
+        StrictDataclassError = None
 
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
 from .util import (
@@ -54,8 +59,8 @@ _TOKENIZER_LOAD_EXCEPTIONS = (
     KeyError,
 )
 
-if StrictDataclassFieldValidationError is not None:
-    _TOKENIZER_LOAD_EXCEPTIONS = _TOKENIZER_LOAD_EXCEPTIONS + (StrictDataclassFieldValidationError,)
+if StrictDataclassError is not None:
+    _TOKENIZER_LOAD_EXCEPTIONS = _TOKENIZER_LOAD_EXCEPTIONS + (StrictDataclassError,)
 
 _KNOWN_LOAD_WARNING_SUPPRESSIONS = [
     (
@@ -143,12 +148,18 @@ class Tokenicer():
     @staticmethod
     def _load_tokenizer(pretrained_model_name_or_path: str, **kwargs):
         Tokenicer._install_tokenizer_compatibility_shims()
+        load_kwargs = dict(kwargs)
+        # Let Transformers repair affected Mistral-family pre-tokenizer regexes by
+        # default. Transformers applies this only when its compatibility detector
+        # matches, and callers can retain the serialized regex with an explicit
+        # ``fix_mistral_regex=False``.
+        load_kwargs.setdefault("fix_mistral_regex", True)
         try:
             # Keep the normal Transformers path first so standard checkpoints behave unchanged.
-            return AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **kwargs)
+            return AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **load_kwargs)
         except _TOKENIZER_LOAD_EXCEPTIONS:
             overrides = tokenizer_special_token_overrides(pretrained_model_name_or_path)
-            retry_kwargs = dict(kwargs)
+            retry_kwargs = dict(load_kwargs)
             retry_kwargs.update(overrides)
 
             tokenizer_cls_name = tokenizer_class_name(pretrained_model_name_or_path)
@@ -185,10 +196,10 @@ class Tokenicer():
                         pretrained_model_name_or_path,
                     )
 
-            if kwargs.get("trust_remote_code", False) or not has_custom_tokenizer_code(pretrained_model_name_or_path):
+            if load_kwargs.get("trust_remote_code", False) or not has_custom_tokenizer_code(pretrained_model_name_or_path):
                 raise
 
-            retry_kwargs = dict(kwargs)
+            retry_kwargs = dict(load_kwargs)
             retry_kwargs["trust_remote_code"] = True
             # Local checkpoints with custom tokenizer code can still succeed once remote code is explicitly allowed.
             logger.warning(

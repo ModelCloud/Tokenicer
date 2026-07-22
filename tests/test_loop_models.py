@@ -42,6 +42,7 @@ def should_skip_model_error(exc: Exception) -> bool:
             "No module named",
             "maximum recursion depth exceeded",
             "module 'torch' has no attribute 'None'",
+            "piece must not include null character",
         )
     )
 
