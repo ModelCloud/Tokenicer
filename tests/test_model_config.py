@@ -23,6 +23,9 @@ class TestModelConfig(unittest.TestCase):
 
     def test_model_config(self):
         model_path = "/monster/data/model/mpt-7b-instruct"
+        from pathlib import Path
+        if not Path(model_path).is_dir():
+            self.skipTest(f"Local tokenizer fixture is unavailable: {model_path}")
         tokenicer = Tokenicer.load(model_path)
 
         expect_bos_token_id = 0

@@ -22,10 +22,10 @@ import unittest
 from unittest.mock import patch
 
 from huggingface_hub.errors import StrictDataclassClassValidationError
-from tokenicer import Tokenicer
 from tokenizers import Tokenizer, decoders, models, pre_tokenizers, trainers
-from transformers import AutoTokenizer, PreTrainedTokenizerFast
+from transformers import AutoTokenizer, LlamaTokenizer, PreTrainedTokenizerFast
 
+from tokenicer import Tokenicer
 
 # A Llama-3/GPT-4-style byte-level BPE. Transformers' legacy `LlamaTokenizer` class cannot
 # represent this tokenization: it rebuilds the backend with a hardcoded sentencepiece
@@ -176,7 +176,7 @@ class TestSerializedTokenizerPreference(unittest.TestCase):
 
         tokenizer = Tokenicer.load(self.plain_dir, prefer_serialized_tokenizer=False)
 
-        self.assertEqual(type(tokenizer.tokenizer).__name__, "LlamaTokenizer")
+        self.assertIs(type(tokenizer.tokenizer), type(legacy))
         self.assertEqual(self._probe_ids(tokenizer), self._probe_ids(legacy))
 
     def test_legacy_class_declaration_is_preserved(self):
@@ -184,7 +184,7 @@ class TestSerializedTokenizerPreference(unittest.TestCase):
 
         tokenizer = Tokenicer.load(self.legacy_dir)
 
-        self.assertEqual(type(tokenizer.tokenizer).__name__, "LlamaTokenizer")
+        self.assertIs(type(tokenizer.tokenizer), type(legacy))
         self.assertEqual(self._probe_ids(tokenizer), self._probe_ids(legacy))
 
     def test_class_matching_the_serialized_tokenizer_is_preserved(self):
@@ -192,8 +192,18 @@ class TestSerializedTokenizerPreference(unittest.TestCase):
 
         tokenizer = Tokenicer.load(self.matching_dir)
 
-        self.assertEqual(type(tokenizer.tokenizer).__name__, "LlamaTokenizer")
+        self.assertIs(type(tokenizer.tokenizer), type(loaded))
         self.assertEqual(self._probe_ids(tokenizer), self._probe_ids(loaded))
+
+    def test_actual_legacy_backend_respects_serialized_preference(self):
+        legacy = LlamaTokenizer.from_pretrained(self.plain_dir, local_files_only=True)
+        serialized = PreTrainedTokenizerFast.from_pretrained(self.plain_dir, local_files_only=True)
+        self.assertNotEqual(self._probe_ids(legacy), self._probe_ids(serialized))
+        with patch("tokenicer.tokenicer.AutoTokenizer.from_pretrained", return_value=legacy):
+            preferred = Tokenicer.load(self.plain_dir)
+            opted_out = Tokenicer.load(self.plain_dir, prefer_serialized_tokenizer=False)
+        self.assertEqual(self._probe_ids(preferred), self._probe_ids(serialized))
+        self.assertIs(opted_out.tokenizer, legacy)
 
     def test_fallback_path_uses_the_serialized_tokenizer(self):
         serialized = PreTrainedTokenizerFast.from_pretrained(self.plain_dir, local_files_only=True)

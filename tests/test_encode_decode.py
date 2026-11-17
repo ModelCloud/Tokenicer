@@ -17,6 +17,7 @@
 import unittest
 
 from parameterized import parameterized
+
 from tokenicer import Tokenicer
 
 
@@ -24,6 +25,9 @@ class TestTokenicer(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
+        from pathlib import Path
+        if not Path("/monster/data/model/Qwen2.5-0.5B-Instruct").is_dir():
+            raise unittest.SkipTest("Local Qwen tokenizer fixture is unavailable")
         self.pretrained_model_id = "/monster/data/model/Qwen2.5-0.5B-Instruct/"
         self.tokenizer = Tokenicer.load(self.pretrained_model_id)
         self.example = 'Test Case String'

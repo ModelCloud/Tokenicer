@@ -15,11 +15,11 @@
 # limitations under the License.
 import os
 import unittest
+from typing import ClassVar
 
 from parameterized import parameterized
 
 from tokenicer import Tokenicer
-
 
 MODEL_DIR = "/monster/data/model"
 
@@ -48,15 +48,17 @@ def should_skip_model_error(exc: Exception) -> bool:
 
 
 class Test(unittest.TestCase):
-    model_list = [
+    model_list: ClassVar[list[str]] = [
         os.path.join(MODEL_DIR, f)
-        for f in os.listdir(MODEL_DIR)
+        for f in (os.listdir(MODEL_DIR) if os.path.isdir(MODEL_DIR) else [])
         if os.path.isdir(os.path.join(MODEL_DIR, f))
         and any(f == "tokenizer_config.json" for f in os.listdir(os.path.join(MODEL_DIR, f)))
         ]
 
-    @parameterized.expand(model_list)
+    @parameterized.expand(model_list or [None])
     def test(self, model_path):
+        if model_path is None:
+            self.skipTest(f"Local tokenizer fixtures are unavailable: {MODEL_DIR}")
         if "XVERSE-7B-Chat" in model_path:
             self.skipTest(f"{model_path} requires old versions of transformers & tokenizer, skipped")
 

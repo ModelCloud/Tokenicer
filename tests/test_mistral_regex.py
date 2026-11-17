@@ -46,6 +46,7 @@ class TestMistralRegexNormalization(unittest.TestCase):
         from_pretrained.assert_called_once_with(
             "poolside/Laguna-S-2.1",
             fix_mistral_regex=False,
+            trust_remote_code=False,
         )
 
     @patch("tokenicer.tokenicer.Tokenicer._resolve_tokenizer_class")
@@ -77,7 +78,9 @@ class TestMistralRegexNormalization(unittest.TestCase):
         )
         special_token_overrides.assert_called_once_with("/tmp/Laguna-S-2.1")
         tokenizer_class_name.assert_called_once_with("/tmp/Laguna-S-2.1")
-        resolve_tokenizer_class.assert_called_once_with("/tmp/Laguna-S-2.1", "FallbackTokenizer")
+        resolve_tokenizer_class.assert_called_once_with(
+            "/tmp/Laguna-S-2.1", "FallbackTokenizer", trust_remote_code=True,
+        )
         fallback_from_pretrained.assert_called_once_with(
             "/tmp/Laguna-S-2.1",
             trust_remote_code=True,

@@ -39,11 +39,11 @@ except Exception:  # pragma: no cover - optional dependency path
         StrictDataclassError = None
 
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
+from .ernie_vl import MODEL_TYPES as ERNIE_VL_MODEL_TYPES, ernie_vl_model_config, load_ernie_vl, normalize_ernie_vl
 from .util import (
     auto_config,
     config_path,
     custom_tokenizer_class_ref,
-    has_custom_tokenizer_code,
     tokenizer_class_name,
     tokenizer_special_token_overrides,
 )
@@ -123,6 +123,10 @@ class Tokenicer():
         """Load a tokenizer and auto-fix its pad token.
 
         Args:
+            trust_remote_code (`bool`, *optional*, defaults to `False`):
+                Only an explicit `True` permits checkpoint Python. `None` also
+                means `False`. Unknown custom classes require trust or an
+                already loaded tokenizer instance, not a generic JSON substitute.
             prefer_serialized_tokenizer (`bool`, *optional*, defaults to `True`):
                 Keep the tokenization of the checkpoint's own `tokenizer.json` when a
                 `*TokenizerFast` class resolves to a legacy class that tokenizes differently.
@@ -131,7 +135,8 @@ class Tokenicer():
         if pretrained_model_name_or_path is None:
             raise ValueError("Tokenicer: `pretrained_model_name_or_path` cannot be `None`.")
 
-        trust_remote_code = kwargs.get('trust_remote_code', False)
+        trust_remote_code = kwargs.get("trust_remote_code") is True
+        kwargs["trust_remote_code"] = trust_remote_code
 
         warning_filters = cls._warning_filters(pretrained_model_name_or_path)
         with warnings.catch_warnings():
@@ -142,6 +147,8 @@ class Tokenicer():
                 tokenizer = pretrained_model_name_or_path
                 path = config_path(tokenizer)
             elif isinstance(pretrained_model_name_or_path, str):
+                if getattr(model_config, "model_type", None) in ERNIE_VL_MODEL_TYPES:
+                    kwargs.setdefault("config", model_config)
                 tokenizer = cls._load_tokenizer(
                     pretrained_model_name_or_path,
                     prefer_serialized_tokenizer=prefer_serialized_tokenizer,
@@ -155,9 +162,14 @@ class Tokenicer():
                 raise ValueError(f"Tokenicer: Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
 
             if model_config is None:
-                model_config = auto_config(path, trust_remote_code)
+                if getattr(tokenizer, "_tokenicer_native_ernie_vl", False):
+                    model_config = kwargs.get("config") or ernie_vl_model_config(path, **kwargs)
+                else:
+                    model_config = auto_config(path, trust_remote_code)
 
             resolved_model_config = cls._resolve_text_model_config(model_config)
+            if getattr(model_config, "model_type", None) in ERNIE_VL_MODEL_TYPES:
+                normalize_ernie_vl(tokenizer)
 
         if resolved_model_config is None:
             logger.warning(
@@ -181,8 +193,31 @@ class Tokenicer():
         prefer_serialized_tokenizer: bool = True,
         **kwargs,
     ):
-        Tokenicer._install_tokenizer_compatibility_shims()
+        from transformers.models.auto.tokenization_auto import (
+            get_tokenizer_config,
+            tokenizer_class_from_name,
+        )
+
         load_kwargs = dict(kwargs)
+        trust_remote_code = load_kwargs.get("trust_remote_code") is True
+        load_kwargs["trust_remote_code"] = trust_remote_code
+        native_ernie = load_ernie_vl(pretrained_model_name_or_path, **load_kwargs)
+        if native_ernie is not None:
+            return native_ernie
+        Tokenicer._install_tokenizer_compatibility_shims()
+        if not trust_remote_code:
+            metadata = get_tokenizer_config(pretrained_model_name_or_path, **load_kwargs)
+            declared_class = metadata.get("tokenizer_class")
+            if declared_class:
+                tokenizer_cls = tokenizer_class_from_name(declared_class)
+                if tokenizer_cls is None and not declared_class.endswith("Fast"):
+                    tokenizer_cls = tokenizer_class_from_name(declared_class + "Fast")
+                if tokenizer_cls is None:
+                    raise ValueError(
+                        f"Tokenicer: Checkpoint tokenizer class `{declared_class}` is not available natively. "
+                        "Pass an already loaded tokenizer instance or explicitly set `trust_remote_code=True` "
+                        "to allow checkpoint Python; tokenizer.json alone cannot preserve custom behavior."
+                    )
         # Let Transformers repair affected Mistral-family pre-tokenizer regexes by
         # default. Transformers applies this only when its compatibility detector
         # matches, and callers can retain the serialized regex with an explicit
@@ -207,6 +242,7 @@ class Tokenicer():
                 tokenizer_cls = Tokenicer._resolve_tokenizer_class(
                     pretrained_model_name_or_path,
                     tokenizer_cls_name,
+                    trust_remote_code=trust_remote_code,
                 )
                 if tokenizer_cls is not None:
                     logger.warning(
@@ -221,7 +257,7 @@ class Tokenicer():
                         prefer_serialized_tokenizer=prefer_serialized_tokenizer,
                     )
 
-            custom_class_ref = custom_tokenizer_class_ref(pretrained_model_name_or_path)
+            custom_class_ref = custom_tokenizer_class_ref(pretrained_model_name_or_path) if trust_remote_code else None
             if custom_class_ref is not None:
                 # Load the declared custom tokenizer class directly to bypass bad fallback config parsing.
                 try:
@@ -231,36 +267,20 @@ class Tokenicer():
                         pretrained_model_name_or_path,
                     )
                     tokenizer_cls = get_class_from_dynamic_module(custom_class_ref, pretrained_model_name_or_path)
-                    retry_kwargs.pop("trust_remote_code", None)
                     return Tokenicer._resolve_serialized_tokenizer(
                         pretrained_model_name_or_path,
-                        tokenizer_cls.from_pretrained(pretrained_model_name_or_path, trust_remote_code=True, **retry_kwargs),
+                        tokenizer_cls.from_pretrained(pretrained_model_name_or_path, **retry_kwargs),
                         retry_kwargs,
                         prefer_serialized_tokenizer=prefer_serialized_tokenizer,
                     )
                 except Exception:
                     logger.warning(
-                        "Tokenicer: Failed custom tokenizer load via `%s` for `%s`, trying local tokenizer files.",
+                        "Tokenicer: Failed custom tokenizer load via `%s` for `%s`.",
                         custom_class_ref,
                         pretrained_model_name_or_path,
                     )
 
-            if load_kwargs.get("trust_remote_code", False) or not has_custom_tokenizer_code(pretrained_model_name_or_path):
-                raise
-
-            retry_kwargs = dict(load_kwargs)
-            retry_kwargs["trust_remote_code"] = True
-            # Local checkpoints with custom tokenizer code can still succeed once remote code is explicitly allowed.
-            logger.warning(
-                "Tokenicer: Retrying tokenizer load with `trust_remote_code=True` for local custom tokenizer `%s`.",
-                pretrained_model_name_or_path,
-            )
-            return Tokenicer._resolve_serialized_tokenizer(
-                pretrained_model_name_or_path,
-                AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **retry_kwargs),
-                retry_kwargs,
-                prefer_serialized_tokenizer=prefer_serialized_tokenizer,
-            )
+            raise
 
     @classmethod
     def _resolve_serialized_tokenizer(
@@ -448,6 +468,8 @@ class Tokenicer():
     def _resolve_tokenizer_class(
         pretrained_model_name_or_path: str,
         tokenizer_cls_name: str,
+        *,
+        trust_remote_code: bool = False,
     ):
         import transformers
 
@@ -459,6 +481,9 @@ class Tokenicer():
             # Some checkpoints only expose a base tokenizer marker in
             # tokenizer_config.json. Prefer the fast implementation.
             return tokenizer_cls
+
+        if trust_remote_code is not True:
+            return None
 
         # Handle explicit module references in config (e.g. tokenization_kimi.Tokenizer).
         if "." in tokenizer_cls_name:
