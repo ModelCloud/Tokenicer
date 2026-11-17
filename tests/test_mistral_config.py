@@ -58,7 +58,8 @@ def test_supplied_config_preserves_non_mistral_bpe(legacy_bpe, family, selector)
                                     None, "", 17])
 def test_mistral_and_unknown_configs_keep_existing_default(family):
     config = SimpleNamespace(model_type=family)
-    with patch("tokenicer.tokenicer.AutoTokenizer.from_pretrained", return_value=object()) as load:
+    with patch("tokenicer.util.cached_file", return_value=None), \
+            patch("tokenicer.tokenicer.AutoTokenizer.from_pretrained", return_value=object()) as load:
         Tokenicer._load_tokenizer("no-network", config=config, trust_remote_code=True)
     assert load.call_args.kwargs["fix_mistral_regex"] is True
 
@@ -67,13 +68,15 @@ def test_mistral_and_unknown_configs_keep_existing_default(family):
 @pytest.mark.parametrize("family", ["minicpm", "mistral"])
 def test_explicit_override_remains_authoritative(family, override):
     config = SimpleNamespace(model_type=family)
-    with patch("tokenicer.tokenicer.AutoTokenizer.from_pretrained", return_value=object()) as load:
+    with patch("tokenicer.util.cached_file", return_value=None), \
+            patch("tokenicer.tokenicer.AutoTokenizer.from_pretrained", return_value=object()) as load:
         Tokenicer._load_tokenizer("no-network", config=config, fix_mistral_regex=override, trust_remote_code=True)
     assert load.call_args.kwargs["fix_mistral_regex"] is override
 
 
 def test_exact_auto_config_takes_precedence_over_padding_model_config():
-    with patch("tokenicer.tokenicer.AutoTokenizer.from_pretrained", return_value=object()) as load:
+    with patch("tokenicer.util.cached_file", return_value=None), \
+            patch("tokenicer.tokenicer.AutoTokenizer.from_pretrained", return_value=object()) as load:
         Tokenicer._load_tokenizer("no-network", config=SimpleNamespace(model_type="minicpm"),
                                   model_config=SimpleNamespace(model_type="mistral"), trust_remote_code=True)
     assert load.call_args.kwargs["fix_mistral_regex"] is False

@@ -1,0 +1,485 @@
+{
+  "InternVL-Chat-V1-2": {
+    "repo": "OpenGVLab/InternVL-Chat-V1-2",
+    "revision": "60f4206a208ef1eedb1566e4a3039450a283703b",
+    "asset_sha256": {
+      "tokenizer.model": "386c49cf943d71aa110361135338c50e38beeff0a66593480421f37b319e1a39",
+      "tokenizer_config.json": "58288c5a8343d7257881a7a0289e79c824b7931f6c798313a9a06a76f9624f60",
+      "special_tokens_map.json": "334f8b9eb759dd8d5c7845b44fd65d379e2dc8644b418b30e88df24ed3dbde18",
+      "added_tokens.json": "7a64c6e10e8bcd1ded92be21cf51dc479e6704fbda08b80d09b2500eb6c9ce75"
+    },
+    "source_transformers": "4.37.2",
+    "source_class": "LlamaTokenizerFast",
+    "source_fast_ids": {
+      "Hello 世界!": [
+        29915,
+        59568,
+        2349,
+        99
+      ],
+      "  spaces\n中文 café 🐍 123": [
+        140,
+        59575,
+        18616,
+        144,
+        14202,
+        59260,
+        59568,
+        545,
+        464,
+        449,
+        446,
+        59568,
+        78,
+        79,
+        80
+      ],
+      "x\n\n世界": [
+        1812,
+        144,
+        144,
+        2349
+      ],
+      " café 🐍": [
+        141,
+        59581,
+        2759,
+        60464,
+        59568,
+        545,
+        464,
+        449,
+        446
+      ],
+      "": [],
+      "\n": [
+        59568,
+        144
+      ],
+      " spaces": [
+        141,
+        59575,
+        18616
+      ],
+      "nospace": [
+        609,
+        718,
+        1455
+      ]
+    },
+    "metadata": {
+      "legacy": true,
+      "add_prefix_space": "<absent>",
+      "add_bos_token": false,
+      "add_eos_token": false,
+      "bos_token": "<|startoftext|>",
+      "eos_token": "<|im_end|>",
+      "pad_token": "<unk>",
+      "unk_token": "<unk>",
+      "added_tokens_decoder": {
+        "0": {
+          "content": "<unk>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "1": {
+          "content": "<|startoftext|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "2": {
+          "content": "<|endoftext|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "6": {
+          "content": "<|im_start|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": false
+        },
+        "7": {
+          "content": "<|im_end|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "68": {
+          "content": "<img>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "70": {
+          "content": "</img>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "64000": {
+          "content": "<IMG_CONTEXT>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "64001": {
+          "content": "<quad>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "64002": {
+          "content": "</quad>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "64003": {
+          "content": "<ref>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "64004": {
+          "content": "</ref>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "64005": {
+          "content": "<box>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "64006": {
+          "content": "</box>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        }
+      }
+    },
+    "sp_normalizer": {
+      "name": "identity",
+      "add_dummy_prefix": false,
+      "remove_extra_whitespaces": false,
+      "escape_whitespaces": true
+    },
+    "normalizer_blob_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "normalizer_blob_length": 0
+  },
+  "InternVL2-4B": {
+    "repo": "OpenGVLab/InternVL2-4B",
+    "revision": "6eb21ec278fbdb03b751a3d48d8dfc9724e05608",
+    "asset_sha256": {
+      "tokenizer.model": "9e556afd44213b6bd1be2b850ebbbd98f5481437a8021afaf58ee7fb1818d347",
+      "tokenizer_config.json": "4c772d1ba4150b17d7a2a66f8b6bb6ff0df484ddeb547a60e5c6aed23f7989d9",
+      "special_tokens_map.json": "f877c545fc2db4e95a6afb134d6f3072ae9207af1c8160f7ebbb627e5f5da4ad",
+      "added_tokens.json": "e71a94a0bd27f373bf0be1eefa963aeba6a8fd59fe5495b8cea5214f83f7c439"
+    },
+    "source_transformers": "4.37.2",
+    "source_class": "LlamaTokenizerFast",
+    "source_fast_ids": {
+      "Hello 世界!": [
+        1,
+        15043,
+        29871,
+        30793,
+        30967,
+        29991
+      ],
+      "  spaces\n中文 café 🐍 123": [
+        1,
+        259,
+        8162,
+        13,
+        30275,
+        30333,
+        274,
+        28059,
+        29871,
+        243,
+        162,
+        147,
+        144,
+        29871,
+        29896,
+        29906,
+        29941
+      ],
+      "x\n\n世界": [
+        1,
+        921,
+        13,
+        13,
+        30793,
+        30967
+      ],
+      " café 🐍": [
+        1,
+        29871,
+        274,
+        28059,
+        29871,
+        243,
+        162,
+        147,
+        144
+      ],
+      "": [
+        1
+      ],
+      "\n": [
+        1,
+        29871,
+        13
+      ],
+      " spaces": [
+        1,
+        29871,
+        8162
+      ],
+      "nospace": [
+        1,
+        7814,
+        3535
+      ]
+    },
+    "metadata": {
+      "legacy": false,
+      "add_prefix_space": "<absent>",
+      "add_bos_token": true,
+      "add_eos_token": false,
+      "bos_token": "<s>",
+      "eos_token": "</s>",
+      "pad_token": "</s>",
+      "unk_token": "<unk>",
+      "added_tokens_decoder": {
+        "0": {
+          "content": "<unk>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "1": {
+          "content": "<s>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "2": {
+          "content": "</s>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": true,
+          "single_word": false,
+          "special": true
+        },
+        "32000": {
+          "content": "<|endoftext|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "32001": {
+          "content": "<|assistant|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": true,
+          "single_word": false,
+          "special": true
+        },
+        "32002": {
+          "content": "<|placeholder1|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": true,
+          "single_word": false,
+          "special": true
+        },
+        "32003": {
+          "content": "<|placeholder2|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": true,
+          "single_word": false,
+          "special": true
+        },
+        "32004": {
+          "content": "<|placeholder3|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": true,
+          "single_word": false,
+          "special": true
+        },
+        "32005": {
+          "content": "<|placeholder4|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": true,
+          "single_word": false,
+          "special": true
+        },
+        "32006": {
+          "content": "<|system|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": true,
+          "single_word": false,
+          "special": true
+        },
+        "32007": {
+          "content": "<|end|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": true,
+          "single_word": false,
+          "special": true
+        },
+        "32008": {
+          "content": "<|placeholder5|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": true,
+          "single_word": false,
+          "special": true
+        },
+        "32009": {
+          "content": "<|placeholder6|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": true,
+          "single_word": false,
+          "special": true
+        },
+        "32010": {
+          "content": "<|user|>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": true,
+          "single_word": false,
+          "special": true
+        },
+        "32011": {
+          "content": "<img>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "32012": {
+          "content": "</img>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "32013": {
+          "content": "<IMG_CONTEXT>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "32014": {
+          "content": "<quad>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "32015": {
+          "content": "</quad>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "32016": {
+          "content": "<ref>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "32017": {
+          "content": "</ref>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "32018": {
+          "content": "<box>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        },
+        "32019": {
+          "content": "</box>",
+          "lstrip": false,
+          "normalized": false,
+          "rstrip": false,
+          "single_word": false,
+          "special": true
+        }
+      }
+    },
+    "sp_normalizer": {
+      "name": "identity",
+      "add_dummy_prefix": true,
+      "remove_extra_whitespaces": false,
+      "escape_whitespaces": true
+    },
+    "normalizer_blob_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "normalizer_blob_length": 0
+  }
+}

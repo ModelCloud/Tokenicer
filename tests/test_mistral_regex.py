@@ -23,6 +23,11 @@ from tokenicer import Tokenicer
 
 
 class TestMistralRegexNormalization(unittest.TestCase):
+    def setUp(self):
+        lookup = patch("tokenicer.util.cached_file", return_value=None)
+        lookup.start()
+        self.addCleanup(lookup.stop)
+
     @patch("tokenicer.tokenicer.AutoTokenizer.from_pretrained")
     def test_mistral_regex_fix_is_enabled_by_default(self, from_pretrained):
         expected = object()
@@ -75,8 +80,9 @@ class TestMistralRegexNormalization(unittest.TestCase):
             "/tmp/Laguna-S-2.1",
             trust_remote_code=True,
             fix_mistral_regex=True,
+            bos_token="<s>",
         )
-        special_token_overrides.assert_called_once_with("/tmp/Laguna-S-2.1")
+        special_token_overrides.assert_called_once_with("/tmp/Laguna-S-2.1", trust_remote_code=True)
         tokenizer_class_name.assert_called_once_with("/tmp/Laguna-S-2.1")
         resolve_tokenizer_class.assert_called_once_with(
             "/tmp/Laguna-S-2.1", "FallbackTokenizer", trust_remote_code=True,
