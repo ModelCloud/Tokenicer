@@ -86,8 +86,8 @@ def test_exact_auto_config_takes_precedence_over_padding_model_config():
 def test_default_is_preserved_by_fallback_and_retry(family, expected):
     fallback = Mock(from_pretrained=Mock(return_value=object()))
     with patch("tokenicer.tokenicer.AutoTokenizer.from_pretrained", side_effect=ValueError("retry")) as load, \
-            patch("tokenicer.tokenicer.tokenizer_special_token_overrides", return_value={}), \
-            patch("tokenicer.tokenicer.tokenizer_class_name", return_value="LlamaTokenizer"), \
+            patch("tokenicer.util.cached_file", return_value=None), \
+            patch.object(Tokenicer, "_declared_tokenizer_class", return_value="LlamaTokenizer"), \
             patch("tokenicer.tokenicer.Tokenicer._resolve_tokenizer_class", return_value=fallback):
         Tokenicer._load_tokenizer("no-network", config=SimpleNamespace(model_type=family), trust_remote_code=True)
     assert load.call_args.kwargs["fix_mistral_regex"] is expected

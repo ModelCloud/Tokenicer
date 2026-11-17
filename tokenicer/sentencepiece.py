@@ -9,7 +9,9 @@ from tokenizers import Tokenizer, normalizers
 from tokenizers.models import BPE
 from transformers import LlamaTokenizer
 
+from .serialized import normalize_legacy_metaspace
 from .util import _tokenizer_metadata
+
 
 _PIPELINE_OVERRIDES = frozenset({
     "legacy", "add_prefix_space", "tokenizer_object", "tokenizer_file", "vocab", "merges",
@@ -52,6 +54,7 @@ def normalize_sentencepiece(
         serialized = _tokenizer_metadata(path, "tokenizer.json", **selection)
     if serialized:
         if prefer_serialized_tokenizer and _sentencepiece_pipeline(serialized):
+            normalize_legacy_metaspace(serialized)
             source = Tokenizer.from_str(json.dumps(serialized))
             backend.normalizer = source.normalizer
             backend.pre_tokenizer = source.pre_tokenizer

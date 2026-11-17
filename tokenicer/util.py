@@ -134,16 +134,20 @@ def has_custom_tokenizer_code(path) -> bool:
     return any(name.startswith("tokenization") and name.endswith(".py") for name in os.listdir(path))
 
 
-def _tokenizer_metadata(path, filename, **kwargs) -> dict:
+def _tokenizer_file(path, filename, **kwargs):
     if not isinstance(path, (str, os.PathLike)):
-        return {}
+        return None
     path = os.fspath(path)
     if os.path.isabs(path) and not os.path.isdir(path):
-        return {}
+        return None
     selection = {key: kwargs[key] for key in (
         "revision", "subfolder", "cache_dir", "token", "local_files_only", "force_download", "proxies", "repo_type",
     ) if key in kwargs}
-    filename = cached_file(path, filename, _raise_exceptions_for_missing_entries=False, **selection)
+    return cached_file(path, filename, _raise_exceptions_for_missing_entries=False, **selection)
+
+
+def _tokenizer_metadata(path, filename, **kwargs) -> dict:
+    filename = _tokenizer_file(path, filename, **kwargs)
     if filename is None:
         return {}
     with open(filename, "r", encoding="utf-8") as f:

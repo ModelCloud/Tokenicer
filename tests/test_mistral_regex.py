@@ -55,7 +55,7 @@ class TestMistralRegexNormalization(unittest.TestCase):
         )
 
     @patch("tokenicer.tokenicer.Tokenicer._resolve_tokenizer_class")
-    @patch("tokenicer.tokenicer.tokenizer_class_name", return_value="FallbackTokenizer")
+    @patch.object(Tokenicer, "_declared_tokenizer_class", return_value="FallbackTokenizer")
     @patch("tokenicer.tokenicer.tokenizer_special_token_overrides", return_value={"bos_token": "<s>"})
     @patch(
         "tokenicer.tokenicer.AutoTokenizer.from_pretrained",
@@ -68,7 +68,7 @@ class TestMistralRegexNormalization(unittest.TestCase):
         self,
         auto_from_pretrained,
         special_token_overrides,
-        tokenizer_class_name,
+        declared_tokenizer_class,
         resolve_tokenizer_class,
     ):
         fallback_from_pretrained = Mock(return_value=object())
@@ -83,7 +83,9 @@ class TestMistralRegexNormalization(unittest.TestCase):
             bos_token="<s>",
         )
         special_token_overrides.assert_called_once_with("/tmp/Laguna-S-2.1", trust_remote_code=True)
-        tokenizer_class_name.assert_called_once_with("/tmp/Laguna-S-2.1")
+        declared_tokenizer_class.assert_called_once_with(
+            "/tmp/Laguna-S-2.1", {"trust_remote_code": True, "bos_token": "<s>", "fix_mistral_regex": True},
+        )
         resolve_tokenizer_class.assert_called_once_with(
             "/tmp/Laguna-S-2.1", "FallbackTokenizer", trust_remote_code=True,
         )
