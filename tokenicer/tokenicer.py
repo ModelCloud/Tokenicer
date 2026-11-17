@@ -113,6 +113,19 @@ class Tokenicer():
 
     _compatibility_shims_installed = False
 
+    @staticmethod
+    def prepare_load_kwargs(pretrained_model_name_or_path, **kwargs):
+        """Return fresh, selection-aware kwargs before tokenizer construction.
+
+        Read tokenizer JSON metadata only. Explicit caller keys, including
+        ``None`` and empty lists, are preserved without normalizing instances.
+        No tokenizer class or model config is discovered or constructed here.
+        """
+        prepared = dict(kwargs)
+        for key, value in tokenizer_special_token_overrides(pretrained_model_name_or_path, **kwargs).items():
+            prepared.setdefault(key, value)
+        return prepared
+
     @classmethod
     def load(
         cls,
@@ -203,7 +216,7 @@ class Tokenicer():
             tokenizer_class_from_name,
         )
 
-        load_kwargs = dict(kwargs)
+        load_kwargs = Tokenicer.prepare_load_kwargs(pretrained_model_name_or_path, **kwargs)
         trust_remote_code = load_kwargs.get("trust_remote_code") is True
         load_kwargs["trust_remote_code"] = trust_remote_code
         native_ernie = load_ernie_vl(pretrained_model_name_or_path, **load_kwargs)
@@ -245,9 +258,7 @@ class Tokenicer():
                 prefer_serialized_tokenizer=prefer_serialized_tokenizer,
             )
         except _TOKENIZER_LOAD_EXCEPTIONS:
-            overrides = tokenizer_special_token_overrides(pretrained_model_name_or_path)
             retry_kwargs = dict(load_kwargs)
-            retry_kwargs.update(overrides)
 
             tokenizer_cls_name = tokenizer_class_name(pretrained_model_name_or_path)
             if tokenizer_cls_name is not None:

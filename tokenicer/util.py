@@ -19,7 +19,9 @@ import os
 import types
 from typing import List, Optional, Union
 
+from tokenizers import AddedToken
 from transformers import AutoConfig, PretrainedConfig
+from transformers.utils.hub import cached_file
 
 
 def candidate_ids(token_list: List[Union[str, int]], vocab: dict) -> List[Optional[int]]:
@@ -132,23 +134,64 @@ def has_custom_tokenizer_code(path) -> bool:
     return any(name.startswith("tokenization") and name.endswith(".py") for name in os.listdir(path))
 
 
-def tokenizer_special_token_overrides(path) -> dict:
-    if not isinstance(path, str) or not os.path.isdir(path):
+def _tokenizer_metadata(path, filename, **kwargs) -> dict:
+    if not isinstance(path, (str, os.PathLike)):
         return {}
-
-    tokenizer_config_path = os.path.join(path, "tokenizer_config.json")
-    if not os.path.exists(tokenizer_config_path):
+    path = os.fspath(path)
+    if os.path.isabs(path) and not os.path.isdir(path):
         return {}
+    selection = {key: kwargs[key] for key in (
+        "revision", "subfolder", "cache_dir", "token", "local_files_only", "force_download", "proxies", "repo_type",
+    ) if key in kwargs}
+    filename = cached_file(path, filename, _raise_exceptions_for_missing_entries=False, **selection)
+    if filename is None:
+        return {}
+    with open(filename, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    if not isinstance(metadata, dict):
+        raise ValueError(f"Tokenicer: tokenizer metadata must be an object: {filename}")
+    return metadata
 
-    with open(tokenizer_config_path, "r", encoding="utf-8") as f:
-        tokenizer_config = json.load(f)
+
+def _special_token(value):
+    if not isinstance(value, dict):
+        if not isinstance(value, (str, AddedToken)):
+            raise ValueError("Tokenicer: special token must be a string or AddedToken dictionary")
+        return value
+    fields = dict(value)
+    marker = fields.pop("__type", "AddedToken")
+    if marker != "AddedToken" or not isinstance(fields.get("content"), str):
+        raise ValueError("Tokenicer: AddedToken metadata requires string content")
+    if set(fields) - {"content", "single_word", "lstrip", "rstrip", "normalized", "special"}:
+        raise ValueError("Tokenicer: unknown AddedToken metadata fields")
+    if any(not isinstance(v, bool) for k, v in fields.items() if k != "content"):
+        raise ValueError("Tokenicer: AddedToken flags must be booleans")
+    fields["special"] = True
+    return AddedToken(**fields)
+
+
+def tokenizer_special_token_overrides(path, **kwargs) -> dict:
+    tokenizer_config = _tokenizer_metadata(path, "tokenizer_config.json", **kwargs)
+    special_tokens_map = _tokenizer_metadata(path, "special_tokens_map.json", **kwargs)
+    overrides = {}
+    # Serialized config flags are authoritative; legacy maps fill missing declarations.
+    for metadata in (tokenizer_config, special_tokens_map):
+        for key, value in metadata.items():
+            if key in kwargs or key in overrides:
+                continue
+            if key in {"additional_special_tokens", "extra_special_tokens"}:
+                alias = "extra_special_tokens" if key == "additional_special_tokens" else "additional_special_tokens"
+                if alias in kwargs or alias in overrides:
+                    continue
+                if isinstance(value, list):
+                    overrides[key] = [_special_token(token) for token in value]
+            elif key.endswith("_token") and isinstance(value, dict):
+                overrides[key] = _special_token(value)
 
     tokenizer_class = tokenizer_config.get("tokenizer_class")
     if tokenizer_class not in {"LlamaTokenizer", "LlamaTokenizerFast"}:
-        return {}
+        return overrides
 
-    overrides = {}
-    # Some local Llama-family checkpoints serialize empty strings for required special tokens.
     defaults = {
         "bos_token": "<s>",
         "eos_token": "</s>",
@@ -156,7 +199,7 @@ def tokenizer_special_token_overrides(path) -> dict:
     }
     for key, default_value in defaults.items():
         if tokenizer_config.get(key, None) == "":
-            overrides[key] = default_value
+            overrides.setdefault(key, default_value)
 
     return overrides
 

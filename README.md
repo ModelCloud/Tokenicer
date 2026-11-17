@@ -16,6 +16,7 @@
 
 ## News
 * 0.0.18: Respect supplied text `config`/`model_config` when defaulting the Mistral regex repair; preserve original MiniCPM token IDs when old checkpoint JSON omits `model_type`. Explicit `fix_mistral_regex` overrides and affected Mistral-family defaults are unchanged. See [config-selected regex correction](docs/config-selected-mistral-regex.md).
+* 0.0.19 candidate: [`Tokenicer.prepare_load_kwargs(path, **kwargs)`](docs/tokenizer-preload-metadata.md) prepares legacy AddedToken metadata before native or package-owned tokenizer construction, preserving explicit caller values and selected Hub assets. This source candidate is not a published release.
 * 0.0.17 security follow-up: [Tokenizer trust policy](docs/tokenizer-trust-policy.md) applies to every fallback. Unknown custom tokenizer classes fail closed without explicit trust or an already loaded instance; retries never turn trust on.
 * 11/17/2026 0.0.17: [Load legacy ERNIE 4.5 VL tokenizers natively](docs/ernie-vl-tokenizer-loading.md) without checkpoint Python; normalize image/video tokens and chat placeholders. SentencePiece-only bundles require `sentencepiece` and `protobuf`.
 * 10/15/2026 [0.0.16](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.16): Keep the tokenization of the checkpoint's serialized `tokenizer.json` when a `*TokenizerFast` class resolves to a legacy tokenizer that rebuilds its own backend. Fixes `DeepSeek-R1-Distill-Llama-*` and other Llama-3-style checkpoints loaded from a local directory, where every word lost its leading whitespace.
