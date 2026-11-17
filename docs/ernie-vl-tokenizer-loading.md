@@ -12,7 +12,13 @@ flowchart TD
   C --> E[normalize_ernie_vl: named image/video tokens and chat placeholders]
   C -->|invalid or missing assets| F[Raise: never retry checkpoint Python]
   E --> G[Explicit model_config or JSON-only ernie_vl_model_config]
-  G --> H[Tokenicer wrapper and pad-token normalization]
+  G -->|config.json missing| I[None: existing tokenizer-only pad fallback]
+  G -->|JSON found| J[_namespace_from_dict: nested text metadata]
+  G -->|malformed JSON or access error| F
+  I --> H
+  J --> H
+  H[Tokenicer wrapper and pad-token normalization]
+  style F fill:#ffd6d6
 ```
 
 | Mechanism | Before | After |
@@ -42,3 +48,13 @@ GPT-QModel consumes the correction through `Tokenicer.load`, with the selected
 native model config supplied explicitly. No trained-weight evaluation or
 quantization-quality claim is made here. Local `/monster/data/model` smoke
 fixtures remain optional and are explicitly skipped when unavailable.
+
+Nested JSON text configs are recursively materialized as metadata objects before
+pad normalization. Missing `config.json` is allowed: existing pad IDs survive,
+or the existing non-strict tokenizer-only EOS fallback applies. JSON parse and
+access errors are not converted into missing-config success. The public
+`test_nested_json_config_materializes_text_metadata`,
+`test_tokenizer_only_bundle_preserves_pad_fallback`, and
+`test_malformed_config_errors_then_corrected_nested_config_retries` regressions
+all failed before this correction; they cover both trust values, provided and
+inferred BOS/EOS/PAD metadata, and retrying a corrected bundle.

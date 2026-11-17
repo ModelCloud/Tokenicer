@@ -8,6 +8,10 @@ No checkpoint Python is imported. Transformers owns SentencePiece conversion.
 """
 
 from transformers import PreTrainedConfig, PreTrainedTokenizerFast
+from transformers.utils import CONFIG_NAME
+from transformers.utils.hub import cached_file
+
+from .util import _namespace_from_dict
 
 MODEL_TYPES = {"ernie4_5_moe_vl", "ernie4_5_vl_moe"}
 SPECIAL_TOKENS = {
@@ -66,5 +70,10 @@ def load_ernie_vl(path, **kwargs):
 
 
 def ernie_vl_model_config(path, **kwargs):
-    values, _ = PreTrainedConfig.get_config_dict(path, **kwargs)
-    return PreTrainedConfig.from_dict(values)
+    hub_keys = {"cache_dir", "force_download", "proxies", "token", "local_files_only", "revision", "subfolder", "_commit_hash"}
+    config_file = cached_file(path, CONFIG_NAME, _raise_exceptions_for_missing_entries=False,
+                              **{key: value for key, value in kwargs.items() if key in hub_keys})
+    if config_file is None:
+        return None
+    values, _ = PreTrainedConfig.get_config_dict(config_file)
+    return _namespace_from_dict(values)

@@ -61,6 +61,49 @@ def test_implicit_config_is_json_only_even_when_trusted(tmp_path):
     assert not marker.exists()
 
 
+@pytest.mark.parametrize("trust", [False, True])
+@pytest.mark.parametrize("special_ids", [{}, {"bos_token_id": 1, "eos_token_id": 2, "pad_token_id": 0}])
+def test_nested_json_config_materializes_text_metadata(tmp_path, trust, special_ids):
+    marker = bundle(tmp_path)
+    (tmp_path / "config.json").write_text(json.dumps({
+        "model_type": "ernie4_5_moe_vl", "text_config": {"vocab_size": 103367, **special_ids},
+        "auto_map": {"AutoConfig": "hostile.Config"},
+    }))
+    tokenizer = Tokenicer.load(str(tmp_path), trust_remote_code=trust)
+    assert tokenizer.model_config.vocab_size == 103367
+    assert tokenizer.pad_token_id == 0
+    assert tokenizer.bos_token_id == 1
+    assert tokenizer.eos_token_id == 2
+    assert not marker.exists()
+
+
+@pytest.mark.parametrize("trust", [False, True])
+@pytest.mark.parametrize("has_pad", [False, True])
+def test_tokenizer_only_bundle_preserves_pad_fallback(tmp_path, trust, has_pad):
+    marker = bundle(tmp_path)
+    (tmp_path / "config.json").unlink()
+    if not has_pad:
+        metadata = json.loads((tmp_path / "tokenizer_config.json").read_text())
+        metadata.pop("pad_token", None)
+        (tmp_path / "tokenizer_config.json").write_text(json.dumps(metadata))
+    tokenizer = Tokenicer.load(str(tmp_path), trust_remote_code=trust)
+    assert tokenizer.model_config is None
+    assert tokenizer.pad_token_id == (0 if has_pad else 2)
+    assert tokenizer.image_token_id == 4
+    assert not marker.exists()
+
+
+def test_malformed_config_errors_then_corrected_nested_config_retries(tmp_path):
+    marker = bundle(tmp_path)
+    (tmp_path / "config.json").write_text("{broken")
+    with pytest.raises(OSError):
+        Tokenicer.load(str(tmp_path), trust_remote_code=True)
+    (tmp_path / "config.json").write_text(json.dumps({"model_type": "ernie4_5_moe_vl", "text_config": {"vocab_size": 16}}))
+    tokenizer = Tokenicer.load(str(tmp_path), trust_remote_code=True)
+    assert tokenizer.model_config.vocab_size == 16
+    assert not marker.exists()
+
+
 def test_invalid_native_assets_fail_closed_then_retry(tmp_path, monkeypatch):
     from transformers import AutoTokenizer
 
