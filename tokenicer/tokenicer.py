@@ -28,6 +28,7 @@ from transformers import (
 )
 from transformers.dynamic_module_utils import get_class_from_dynamic_module
 
+
 try:
     from huggingface_hub.errors import StrictDataclassError
 except Exception:  # pragma: no cover - optional dependency path
@@ -39,7 +40,8 @@ except Exception:  # pragma: no cover - optional dependency path
         StrictDataclassError = None
 
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
-from .ernie_vl import MODEL_TYPES as ERNIE_VL_MODEL_TYPES, ernie_vl_model_config, load_ernie_vl, normalize_ernie_vl
+from .ernie_vl import MODEL_TYPES as ERNIE_VL_MODEL_TYPES
+from .ernie_vl import ernie_vl_model_config, load_ernie_vl, normalize_ernie_vl
 from .util import (
     auto_config,
     config_path,
@@ -47,6 +49,7 @@ from .util import (
     tokenizer_class_name,
     tokenizer_special_token_overrides,
 )
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -152,6 +155,7 @@ class Tokenicer():
                 tokenizer = cls._load_tokenizer(
                     pretrained_model_name_or_path,
                     prefer_serialized_tokenizer=prefer_serialized_tokenizer,
+                    model_config=model_config,
                     **kwargs,
                 )
                 if isinstance(tokenizer, PreTrainedTokenizerBase):
@@ -191,6 +195,7 @@ class Tokenicer():
     def _load_tokenizer(
         pretrained_model_name_or_path: str,
         prefer_serialized_tokenizer: bool = True,
+        model_config=None,
         **kwargs,
     ):
         from transformers.models.auto.tokenization_auto import (
@@ -218,11 +223,19 @@ class Tokenicer():
                         "Pass an already loaded tokenizer instance or explicitly set `trust_remote_code=True` "
                         "to allow checkpoint Python; tokenizer.json alone cannot preserve custom behavior."
                     )
-        # Let Transformers repair affected Mistral-family pre-tokenizer regexes by
-        # default. Transformers applies this only when its compatibility detector
-        # matches, and callers can retain the serialized regex with an explicit
-        # ``fix_mistral_regex=False``.
-        load_kwargs.setdefault("fix_mistral_regex", True)
+        # Old config.json files can omit model_type and fool Transformers' file
+        # detector. Prefer the caller-selected text config without rereading it.
+        config = load_kwargs.get("config")
+        if config is None:
+            config = model_config
+        config = Tokenicer._resolve_text_model_config(config)
+        model_type = getattr(config, "model_type", None)
+        default_regex_fix = True
+        if isinstance(model_type, str) and model_type:
+            default_regex_fix = model_type == "laguna" or model_type.startswith(
+                ("mistral", "ministral", "mixtral", "voxtral", "pixtral")
+            )
+        load_kwargs.setdefault("fix_mistral_regex", default_regex_fix)
         try:
             # Keep the normal Transformers path first so standard checkpoints behave unchanged.
             return Tokenicer._resolve_serialized_tokenizer(
