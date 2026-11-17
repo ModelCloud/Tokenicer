@@ -23,6 +23,9 @@ class TestGemma3(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
+        from pathlib import Path
+        if not Path("/monster/data/model/gemma-3-1b-it").is_dir():
+            raise unittest.SkipTest("Local Gemma tokenizer fixture is unavailable")
         self.pretrained_model_id = "/monster/data/model/gemma-3-1b-it"
         self.tokenizer = Tokenicer.load(self.pretrained_model_id)
         self.example = 'Test Case String'

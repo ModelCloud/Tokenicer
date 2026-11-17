@@ -38,6 +38,7 @@ except Exception:  # pragma: no cover - optional dependency path
         StrictDataclassError = None
 
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
+from .ernie_vl import MODEL_TYPES as ERNIE_VL_MODEL_TYPES, ernie_vl_model_config, load_ernie_vl, normalize_ernie_vl
 from .util import (
     auto_config,
     config_path,
@@ -116,6 +117,8 @@ class Tokenicer():
                 tokenizer = pretrained_model_name_or_path
                 path = config_path(tokenizer)
             elif isinstance(pretrained_model_name_or_path, str):
+                if getattr(model_config, "model_type", None) in ERNIE_VL_MODEL_TYPES:
+                    kwargs.setdefault("config", model_config)
                 tokenizer = cls._load_tokenizer(pretrained_model_name_or_path, **kwargs)
                 if isinstance(tokenizer, PreTrainedTokenizerBase):
                     path = pretrained_model_name_or_path
@@ -125,9 +128,14 @@ class Tokenicer():
                 raise ValueError(f"Tokenicer: Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
 
             if model_config is None:
-                model_config = auto_config(path, trust_remote_code)
+                if getattr(tokenizer, "_tokenicer_native_ernie_vl", False):
+                    model_config = kwargs.get("config") or ernie_vl_model_config(path, **kwargs)
+                else:
+                    model_config = auto_config(path, trust_remote_code)
 
             resolved_model_config = cls._resolve_text_model_config(model_config)
+            if getattr(model_config, "model_type", None) in ERNIE_VL_MODEL_TYPES:
+                normalize_ernie_vl(tokenizer)
 
         if resolved_model_config is None:
             logger.warning(
@@ -147,6 +155,9 @@ class Tokenicer():
 
     @staticmethod
     def _load_tokenizer(pretrained_model_name_or_path: str, **kwargs):
+        native_ernie = load_ernie_vl(pretrained_model_name_or_path, **kwargs)
+        if native_ernie is not None:
+            return native_ernie
         Tokenicer._install_tokenizer_compatibility_shims()
         load_kwargs = dict(kwargs)
         # Let Transformers repair affected Mistral-family pre-tokenizer regexes by

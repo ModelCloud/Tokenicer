@@ -14,11 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import unittest
-from typing import Type
 
 from parameterized import parameterized
-from tokenicer import Tokenicer
 from transformers import AutoTokenizer, PreTrainedTokenizerBase, Qwen2TokenizerFast
+
+from tokenicer import Tokenicer
 
 
 class Test(unittest.TestCase):
@@ -28,7 +28,10 @@ class Test(unittest.TestCase):
             ("/monster/data/model/Qwen2.5-0.5B-Instruct/", Qwen2TokenizerFast),
         ]
     )
-    def test(self, model_path:str, expected_type:Type[PreTrainedTokenizerBase]):
+    def test(self, model_path:str, expected_type:type[PreTrainedTokenizerBase]):
+        from pathlib import Path
+        if not Path(model_path).is_dir():
+            self.skipTest(f"Local tokenizer fixture is unavailable: {model_path}")
         tokenicer = Tokenicer.load(model_path)
 
         self.assertIsInstance(tokenicer, expected_type)

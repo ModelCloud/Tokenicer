@@ -15,11 +15,12 @@
 # limitations under the License.
 
 import unittest
-from typing import List, Optional, Union
+from pathlib import Path
 
 from parameterized import parameterized
-from tokenicer import Tokenicer
 from transformers import AutoTokenizer
+
+from tokenicer import Tokenicer
 
 
 class TestPadToken(unittest.TestCase):
@@ -36,15 +37,19 @@ class TestPadToken(unittest.TestCase):
             ('/monster/data/model/Mistral-7B-Instruct-v0.2', '<unk>'),
             ('/monster/data/model/Yi-Coder-1.5B-Chat', '<unk>'),
             ('/monster/data/model/LongCat-Flash-Chat', '<longcat_pad>', None, True),
-            (AutoTokenizer.from_pretrained('/monster/data/model/glm-4-9b-chat-hf'), '<|endoftext|>')
+            ('/monster/data/model/glm-4-9b-chat-hf', '<|endoftext|>')
         ]
     )
     def test_pad_token(self,
                        tokenizer_or_path: str,
                        expect_pad_token: str,
-                       pad_tokens: Optional[List[Union[str, int]]] = None,
+                       pad_tokens: list[str | int] | None = None,
                        trust_remote: bool = False
                        ):
+        if not Path(tokenizer_or_path).is_dir():
+            self.skipTest(f"Local tokenizer fixture is unavailable: {tokenizer_or_path}")
+        if tokenizer_or_path.endswith('/glm-4-9b-chat-hf'):
+            tokenizer_or_path = AutoTokenizer.from_pretrained(tokenizer_or_path)
         tokenicer = Tokenicer.load(tokenizer_or_path, trust_remote_code=trust_remote)
 
         if pad_tokens is not None:

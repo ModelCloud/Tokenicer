@@ -15,6 +15,7 @@
 </p>
 
 ## News
+* 11/17/2026 0.0.16: [Load legacy ERNIE 4.5 VL tokenizers natively](docs/ernie-vl-tokenizer-loading.md) without checkpoint Python; normalize image/video tokens and chat placeholders. SentencePiece-only bundles require `sentencepiece` and `protobuf`.
 * 07/22/2026 [0.0.14](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.14): Auto-fix affected Mistral-family tokenizer regexes, including Laguna S 2.1.
 * 03/03/2026 [0.0.7](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.7): Fix Qwen 3.5 MoE compat.
 * 02/09/2026 [0.0.6](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.6): Fix ChatGLM compat. 

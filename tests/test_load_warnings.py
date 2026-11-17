@@ -59,6 +59,9 @@ class TestLoadWarnings(unittest.TestCase):
         warning_category,
         message_pattern: str,
     ):
+        from pathlib import Path
+        if not Path(model_path).is_dir():
+            self.skipTest(f"Local tokenizer fixture is unavailable: {model_path}")
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             Tokenicer.load(model_path, trust_remote_code=trust_remote_code)
