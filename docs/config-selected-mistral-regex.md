@@ -29,7 +29,7 @@ flowchart TD
 | Input | Before | After |
 | --- | --- | --- |
 | Selected MiniCPM/Llama config, old JSON without type | Mistral repair requested | Repair disabled by default |
-| Selected Mistral/Mistral3/Voxtral/Ministral/Pixtral config | Repair requested | Unchanged |
+| Selected Mistral/Ministral/Mixtral/Voxtral/Pixtral family or Laguna config | Repair requested | Unchanged |
 | No selected type | Transformers detector decides with repair enabled | Unchanged |
 | Explicit `fix_mistral_regex=False/True/None` | Caller value | Unchanged |
 | Native retry/fallback | Same kwargs as first load | Same selected default/override |

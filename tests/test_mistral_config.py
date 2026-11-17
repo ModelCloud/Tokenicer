@@ -53,7 +53,9 @@ def test_supplied_config_preserves_non_mistral_bpe(legacy_bpe, family, selector)
     assert wrapped.decode(expected) == native.decode(expected)
 
 
-@pytest.mark.parametrize("family", ["mistral", "mistral3", "voxtral", "ministral", "pixtral", None, ""])
+@pytest.mark.parametrize("family", ["mistral", "mistral3", "voxtral", "ministral", "pixtral", "laguna",
+                                    "mixtral", "ministral3", "mistral_large4_text", "voxtral_realtime_text",
+                                    None, "", 17])
 def test_mistral_and_unknown_configs_keep_existing_default(family):
     config = SimpleNamespace(model_type=family)
     with patch("tokenicer.tokenicer.AutoTokenizer.from_pretrained", return_value=object()) as load:
@@ -129,7 +131,9 @@ def test_pinned_original_minicpm_ids(name, revision, tmp_path):
 
 
 @pytest.mark.parametrize("override", [None, False])
-def test_native_mistral_digit_regex_is_still_repaired(tmp_path, override):
+@pytest.mark.parametrize("family", ["mistral", "laguna", "mixtral", "ministral3", "mistral_large4_text",
+                                    "voxtral_realtime_text"])
+def test_native_mistral_digit_regex_is_still_repaired(tmp_path, override, family):
     vocab = {token: i for i, token in enumerate(["<unk>", *sorted(pre_tokenizers.ByteLevel.alphabet()), "12", "123"])}
     for value in range(100_001 - len(vocab)):
         vocab[f"unused{value}"] = len(vocab)
@@ -144,7 +148,7 @@ def test_native_mistral_digit_regex_is_still_repaired(tmp_path, override):
     metadata = json.loads((tmp_path / "tokenizer_config.json").read_text())
     metadata["tokenizer_class"] = "TokenizersBackend"
     (tmp_path / "tokenizer_config.json").write_text(json.dumps(metadata))
-    config = PreTrainedConfig(model_type="mistral", pad_token_id=0)
+    config = PreTrainedConfig(model_type=family, pad_token_id=0)
     kwargs = {} if override is None else {"fix_mistral_regex": override}
     wrapped = Tokenicer.load(str(tmp_path), config=config, model_config=config, trust_remote_code=False, **kwargs)
     expected = [vocab["1"], vocab["2"], vocab["3"]] if override is None else [vocab["123"]]

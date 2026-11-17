@@ -230,9 +230,11 @@ class Tokenicer():
             config = model_config
         config = Tokenicer._resolve_text_model_config(config)
         model_type = getattr(config, "model_type", None)
-        default_regex_fix = not model_type or model_type in {
-            "mistral", "mistral3", "voxtral", "ministral", "pixtral",
-        }
+        default_regex_fix = True
+        if isinstance(model_type, str) and model_type:
+            default_regex_fix = model_type == "laguna" or model_type.startswith(
+                ("mistral", "ministral", "mixtral", "voxtral", "pixtral")
+            )
         load_kwargs.setdefault("fix_mistral_regex", default_regex_fix)
         try:
             # Keep the normal Transformers path first so standard checkpoints behave unchanged.
