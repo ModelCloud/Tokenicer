@@ -10,21 +10,19 @@ only and converts those entries to native `tokenizers.AddedToken` objects.
 ```mermaid
 flowchart TD
     A["Caller path and kwargs"] --> B["Tokenicer.prepare_load_kwargs"]
-    B --> C["cached_file: selected tokenizer_config.json and special_tokens_map.json"]
-    C --> D{"Valid JSON token metadata?"}
-    D -->|no| E["Raise before tokenizer construction"]
-    D -->|yes| F{"added_tokens_decoder key in config or caller?"}
-    F -->|yes, even empty| M["Convert config tokens; ignore legacy map"]
-    F -->|no| L["Convert config and legacy map; map wins named tokens; merge lists"]
-    M --> G
-    L --> G
-    G["setdefault: explicit caller keys remain unchanged"]
-    G --> H["Fresh prepared kwargs"]
-    H --> I["Native AutoTokenizer or caller-selected packaged tokenizer"]
-    I -->|native selection error| J["Existing trust-gated fallback with same prepared kwargs"]
-    I --> K["Tokenicer.load instance normalization"]
-    J --> K
-    style E fill:#ffd7d7
+    B --> C["cached_file: selected tokenizer_config.json"]
+    C --> D{"added_tokens_decoder key in config or caller?"}
+    D -->|yes, even empty| E["Convert config tokens; ignore legacy map"]
+    D -->|no| F["Read selected special_tokens_map.json; map wins named tokens; merge lists"]
+    F --> G["setdefault: explicit caller keys remain unchanged"]
+    E --> G
+    G --> H["Fresh kwargs: native or packaged constructor"]
+    H -->|native selection error| I["Existing trust-gated fallback, same prepared kwargs"]
+    H --> J["Tokenicer.load instance normalization"]
+    I --> J
+    C -.->|invalid used metadata| X["Raise before construction; retry reads repaired files"]
+    F -.->|invalid used metadata| X
+    style X fill:#ffd7d7
 ```
 
 | Boundary | Before | After |
@@ -34,6 +32,9 @@ flowchart TD
 | `tokenizer_special_token_overrides` | Local-root Llama empty-string repair | Selected Hub/local JSON metadata and retained Llama repair |
 | Explicit overrides | Retry could overwrite caller values | `setdefault` preserves keys, including `None` and empty lists |
 | Named AddedToken flags | Config-first preparation loses historical legacy-map precedence | Without decoder metadata, map wins; with a decoder key, config wins |
+
+Base locations: `tokenicer/tokenicer.py:241,266` (construction/fallback) and
+`tokenicer/util.py:135` (local-root repair).
 
 ## API and security boundaries
 

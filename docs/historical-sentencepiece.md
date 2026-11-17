@@ -51,6 +51,9 @@ flowchart TD
 | Selected subfolder | Legacy-class probe could inspect root decoys | Declared-class probe uses the same selection kwargs |
 | Package-owned tokenizer | Provider owns behavior | Unchanged, including native subclasses |
 
+The base construction and serialized-resolution boundaries are
+`tokenicer/tokenicer.py:241,299` before this change.
+
 An existing serialized SP pipeline is authoritative independently of the
 historical conversion option. `normalize_sentencepiece=False` disables SP-only
 conversion, **not** serialized preservation; use
