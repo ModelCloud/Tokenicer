@@ -12,6 +12,7 @@ from transformers import GPT2Config, GPT2Tokenizer
 
 from tokenicer import Tokenicer
 
+
 SPECIALS = [
     {"content": "<left>", "lstrip": True, "rstrip": False, "normalized": True, "single_word": False},
     {"content": "<right>", "lstrip": False, "rstrip": True, "normalized": False, "single_word": False},
@@ -120,10 +121,11 @@ def test_remote_selection_is_forwarded_without_model_discovery(legacy_bundle):
         assert all(kwargs[k] == v for k, v in selection.items())
         assert not kwargs["_raise_exceptions_for_missing_entries"]
         assert "config" not in kwargs and "trust_remote_code" not in kwargs
-        return str(legacy_bundle / filename)
+        selected = legacy_bundle / filename
+        return str(selected) if selected.is_file() else None
     with patch("tokenicer.util.cached_file", side_effect=selected_file) as resolve:
         prepared = Tokenicer.prepare_load_kwargs("owner/source", **selection)
-    assert resolve.call_count == 2
+    assert resolve.call_count == 4
     assert all(prepared[k] is v for k, v in selection.items())
     assert prepared["additional_special_tokens"][0].lstrip
 

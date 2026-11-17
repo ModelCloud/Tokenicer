@@ -28,6 +28,7 @@ from transformers import (
 )
 from transformers.dynamic_module_utils import get_class_from_dynamic_module
 
+
 try:
     from huggingface_hub.errors import StrictDataclassError
 except Exception:  # pragma: no cover - optional dependency path
@@ -44,6 +45,7 @@ from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
 from .ernie_vl import MODEL_TYPES as ERNIE_VL_MODEL_TYPES
 from .ernie_vl import ernie_vl_model_config, load_ernie_vl, normalize_ernie_vl
 from .sentencepiece import normalize_sentencepiece as normalize_native_sentencepiece
+from .serialized import prepare_serialized_tokenizer, serialized_tokenizer_file
 from .util import (
     _tokenizer_metadata,
     auto_config,
@@ -52,6 +54,7 @@ from .util import (
     tokenizer_class_name,
     tokenizer_special_token_overrides,
 )
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -119,13 +122,18 @@ class Tokenicer():
     def prepare_load_kwargs(pretrained_model_name_or_path, **kwargs):
         """Return fresh, selection-aware kwargs before tokenizer construction.
 
-        Read tokenizer JSON metadata only. Explicit caller keys, including
+        Read tokenizer JSON data only. Explicit caller keys, including
         ``None`` and empty lists, are preserved without normalizing instances.
         No tokenizer class or model config is discovered or constructed here.
+        Legacy serialized Metaspace data uses an immutable derived cache file;
+        source assets and explicitly supplied tokenizer files/objects are untouched.
         """
         prepared = dict(kwargs)
         for key, value in tokenizer_special_token_overrides(pretrained_model_name_or_path, **kwargs).items():
             prepared.setdefault(key, value)
+        serialized = prepare_serialized_tokenizer(pretrained_model_name_or_path, **kwargs)
+        if serialized is not None:
+            prepared.setdefault("tokenizer_file", serialized)
         return prepared
 
     @classmethod
@@ -274,9 +282,9 @@ class Tokenicer():
                 prefer_serialized_tokenizer=prefer_serialized_tokenizer,
             )
         except _TOKENIZER_LOAD_EXCEPTIONS:
-            retry_kwargs = dict(load_kwargs)
+            retry_kwargs = {key: value for key, value in load_kwargs.items() if key != "config"}
 
-            tokenizer_cls_name = tokenizer_class_name(pretrained_model_name_or_path)
+            tokenizer_cls_name = Tokenicer._declared_tokenizer_class(pretrained_model_name_or_path, load_kwargs)
             if tokenizer_cls_name is not None:
                 # Some checkpoints have a valid tokenizer_config.json even when config auto-detection is broken.
                 tokenizer_cls = Tokenicer._resolve_tokenizer_class(
@@ -375,7 +383,7 @@ class Tokenicer():
         try:
             serialized_tokenizer = PreTrainedTokenizerFast.from_pretrained(
                 pretrained_model_name_or_path,
-                **load_kwargs,
+                **{key: value for key, value in load_kwargs.items() if key != "config"},
             )
         except Exception:
             return tokenizer
@@ -424,25 +432,8 @@ class Tokenicer():
     @staticmethod
     def _serialized_tokenizer_file(pretrained_model_name_or_path, load_kwargs: dict) -> Optional[str]:
         # Path of the checkpoint's `tokenizer.json`, or `None` when the checkpoint has none.
-        if not isinstance(pretrained_model_name_or_path, str):
-            return None
-
-        if os.path.isdir(pretrained_model_name_or_path):
-            serialized_file = os.path.join(pretrained_model_name_or_path, "tokenizer.json")
-            return serialized_file if os.path.exists(serialized_file) else None
-
         try:
-            from transformers.utils import cached_file
-
-            # Forward the same file-selection kwargs the tokenizer was loaded with.
-            probe_kwargs = {
-                key: load_kwargs[key]
-                for key in ("subfolder", "revision", "token", "cache_dir", "local_files_only")
-                if key in load_kwargs
-            }
-            return cached_file(pretrained_model_name_or_path,
-                               "tokenizer.json",
-                               **probe_kwargs)
+            return serialized_tokenizer_file(pretrained_model_name_or_path, **load_kwargs)
         except Exception:
             return None
 
