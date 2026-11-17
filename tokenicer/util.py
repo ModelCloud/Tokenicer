@@ -189,7 +189,7 @@ def tokenizer_special_token_overrides(path, **kwargs) -> dict:
                 overrides[key] = _special_token(value)
 
     tokenizer_class = tokenizer_config.get("tokenizer_class")
-    if tokenizer_class not in {"LlamaTokenizer", "LlamaTokenizerFast"}:
+    if not isinstance(tokenizer_class, str) or tokenizer_class not in {"LlamaTokenizer", "LlamaTokenizerFast"}:
         return overrides
 
     defaults = {

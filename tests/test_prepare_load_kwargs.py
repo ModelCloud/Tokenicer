@@ -12,7 +12,6 @@ from transformers import GPT2Config, GPT2Tokenizer
 
 from tokenicer import Tokenicer
 
-
 SPECIALS = [
     {"content": "<left>", "lstrip": True, "rstrip": False, "normalized": True, "single_word": False},
     {"content": "<right>", "lstrip": False, "rstrip": True, "normalized": False, "single_word": False},
@@ -76,6 +75,18 @@ def test_preparer_does_not_construct_discover_or_normalize(legacy_bundle):
     assert all(isinstance(t, AddedToken) and t.special for t in prepared["additional_special_tokens"])
     actual = GPT2Tokenizer.from_pretrained(str(legacy_bundle), **prepared)
     assert actual.encode(TEXTS[2]) == reference(legacy_bundle).encode(TEXTS[2])
+
+
+@pytest.mark.parametrize("declared_class", [[], ["InternLM2Tokenizer"], {}, 42, None])
+def test_preparer_leaves_nonstring_class_validation_to_selected_provider(legacy_bundle, declared_class):
+    asset = legacy_bundle / "tokenizer_config.json"
+    metadata = json.loads(asset.read_text())
+    metadata["tokenizer_class"] = declared_class
+    asset.write_text(json.dumps(metadata))
+    prepared = Tokenicer.prepare_load_kwargs(legacy_bundle, config="caller-selected")
+    assert prepared["config"] == "caller-selected"
+    assert all(isinstance(token, AddedToken) for token in prepared["additional_special_tokens"])
+    assert json.loads(asset.read_text())["tokenizer_class"] == declared_class
 
 
 @pytest.mark.parametrize("value", [None, [], ["caller"], [AddedToken("caller", lstrip=True)]])
