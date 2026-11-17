@@ -8,7 +8,7 @@ loadable by Transformers 5's native `PreTrainedTokenizerFast`.
 flowchart TD
   A[Tokenicer.load] --> B[load_ernie_vl: inspect config or tokenizer JSON]
   B -->|ERNIE VL| C[PreTrainedTokenizerFast.from_pretrained: no Auto dispatch]
-  B -->|other tokenizer| D[Existing AutoTokenizer and compatibility retries]
+  B -->|other tokenizer| D[Generic trust-gated loader and native compatibility retries]
   C --> E[normalize_ernie_vl: named image/video tokens and chat placeholders]
   C -->|invalid or missing assets| F[Raise: never retry checkpoint Python]
   E --> G[Explicit model_config or JSON-only ernie_vl_model_config]
@@ -58,3 +58,7 @@ access errors are not converted into missing-config success. The public
 `test_malformed_config_errors_then_corrected_nested_config_retries` regressions
 all failed before this correction; they cover both trust values, provided and
 inferred BOS/EOS/PAD metadata, and retrying a corrected bundle.
+
+Other tokenizer families follow the [generic tokenizer trust policy](tokenizer-trust-policy.md).
+The default, explicit false and `None` cannot import checkpoint Python through
+dynamic-class fallback, local file scanning or dotted module references.

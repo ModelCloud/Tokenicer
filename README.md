@@ -15,6 +15,7 @@
 </p>
 
 ## News
+* 0.0.17 security follow-up: [Tokenizer trust policy](docs/tokenizer-trust-policy.md) applies to every fallback. Unknown custom tokenizer classes fail closed without explicit trust or an already loaded instance; retries never turn trust on.
 * 11/17/2026 0.0.17: [Load legacy ERNIE 4.5 VL tokenizers natively](docs/ernie-vl-tokenizer-loading.md) without checkpoint Python; normalize image/video tokens and chat placeholders. SentencePiece-only bundles require `sentencepiece` and `protobuf`.
 * 10/15/2026 [0.0.16](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.16): Keep the tokenization of the checkpoint's serialized `tokenizer.json` when a `*TokenizerFast` class resolves to a legacy tokenizer that rebuilds its own backend. Fixes `DeepSeek-R1-Distill-Llama-*` and other Llama-3-style checkpoints loaded from a local directory, where every word lost its leading whitespace.
 * 07/22/2026 [0.0.14](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.14): Auto-fix affected Mistral-family tokenizer regexes, including Laguna S 2.1.
@@ -30,6 +31,7 @@
 ## Features:
 
 * Compatible with all HF `Transformers` recognized tokenizers
+* [Checkpoint tokenizer Python requires explicit `trust_remote_code=True`](docs/tokenizer-trust-policy.md). The default and `None` fail closed for unknown custom classes; a serialized backend alone does not establish custom/scientific normalization semantics. Already loaded tokenizer instances retain their implementation.
 * Loads the tokenizer the checkpoint asks for: a checkpoint that declares a `*TokenizerFast` class keeps the tokenization of its serialized `tokenizer.json`, even when `Transformers` aliases that name to a legacy class that rebuilds its own backend (`LlamaTokenizer` hardcodes a sentencepiece `Metaspace` pre-tokenizer, which drops the leading whitespace of every word for Llama-3-style checkpoints). Pass `prefer_serialized_tokenizer=False` to keep the class `Transformers` resolves.
 * Auto-fix `models` not setting `padding_token`
 * Auto-Fix `models` released with wrong `padding_token`: many `models` incorrectly use `eos_token` as `pad_token` which leads to subtle and hidden errors in post-training and inference when `batching` is used which is almost always.
