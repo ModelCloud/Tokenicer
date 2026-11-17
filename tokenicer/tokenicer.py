@@ -28,28 +28,30 @@ from transformers import (
 )
 from transformers.dynamic_module_utils import get_class_from_dynamic_module
 
-
 try:
     from huggingface_hub.errors import StrictDataclassError
 except Exception:  # pragma: no cover - optional dependency path
     try:
         # Compatibility with huggingface_hub versions that expose only the
         # concrete field-validation error.
-        from huggingface_hub.errors import StrictDataclassFieldValidationError as StrictDataclassError
+        from huggingface_hub.errors import (
+            StrictDataclassFieldValidationError as StrictDataclassError,
+        )
     except Exception:
         StrictDataclassError = None
 
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
 from .ernie_vl import MODEL_TYPES as ERNIE_VL_MODEL_TYPES
 from .ernie_vl import ernie_vl_model_config, load_ernie_vl, normalize_ernie_vl
+from .sentencepiece import normalize_sentencepiece as normalize_native_sentencepiece
 from .util import (
+    _tokenizer_metadata,
     auto_config,
     config_path,
     custom_tokenizer_class_ref,
     tokenizer_class_name,
     tokenizer_special_token_overrides,
 )
-
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -134,6 +136,7 @@ class Tokenicer():
         pad_tokens: Optional[List[Union[str, int]]] = None,
         model_config: Any = None,
         prefer_serialized_tokenizer: bool = True,
+        normalize_sentencepiece: bool = False,
         **kwargs,
     ):
         """Load a tokenizer and auto-fix its pad token.
@@ -147,6 +150,12 @@ class Tokenicer():
                 Keep the tokenization of the checkpoint's own `tokenizer.json` when a
                 `*TokenizerFast` class resolves to a legacy class that tokenizes differently.
                 Set to `False` to keep the class `Transformers` resolves.
+            normalize_sentencepiece (`bool`, *optional*, defaults to `False`):
+                Opt into historical source-fast identity-SentencePiece BPE conversion on the
+                exact native Llama provider. Use only for qualified historical converters;
+                model assets alone do not identify their version. Serialized SP pipelines are
+                preserved independently when prefer_serialized_tokenizer=True. Explicit
+                pipeline kwargs remain authoritative in either case.
         """
         if pretrained_model_name_or_path is None:
             raise ValueError("Tokenicer: `pretrained_model_name_or_path` cannot be `None`.")
@@ -177,6 +186,13 @@ class Tokenicer():
                     raise ValueError("Tokenicer: Failed to initialize `tokenizer`: please ensure the `pretrained_model_name_or_path` is set correctly.")
             else:
                 raise ValueError(f"Tokenicer: Unsupported `pretrained_model_name_or_path` type: Expected `str` or `PreTrainedTokenizerBase`, actual = `{type(pretrained_model_name_or_path)}`.")
+
+            normalize_native_sentencepiece(
+                tokenizer, path, historical_conversion=normalize_sentencepiece,
+                prefer_serialized_tokenizer=prefer_serialized_tokenizer,
+                resolve_remote=isinstance(pretrained_model_name_or_path, str) or kwargs.get("revision") is not None,
+                **kwargs,
+            )
 
             if model_config is None:
                 if getattr(tokenizer, "_tokenicer_native_ernie_vl", False):
@@ -337,7 +353,7 @@ class Tokenicer():
 
         # Only checkpoints that ask for a `*TokenizerFast` class are affected; checkpoints that
         # declare a legacy class keep the class Transformers resolves.
-        declared_cls_name = cls._declared_tokenizer_class(pretrained_model_name_or_path)
+        declared_cls_name = cls._declared_tokenizer_class(pretrained_model_name_or_path, load_kwargs)
         if declared_cls_name is None or not declared_cls_name.endswith("Fast"):
             return tokenizer
 
@@ -378,8 +394,12 @@ class Tokenicer():
         return serialized_tokenizer
 
     @staticmethod
-    def _declared_tokenizer_class(pretrained_model_name_or_path) -> Optional[str]:
+    def _declared_tokenizer_class(pretrained_model_name_or_path, load_kwargs=None) -> Optional[str]:
         # The tokenizer class the checkpoint asks for in `tokenizer_config.json`, or `None`.
+        if load_kwargs:
+            metadata = _tokenizer_metadata(pretrained_model_name_or_path, "tokenizer_config.json", **load_kwargs)
+            name = metadata.get("tokenizer_class")
+            return name if isinstance(name, str) and name else None
         if not isinstance(pretrained_model_name_or_path, str):
             return None
 
