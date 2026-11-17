@@ -13,8 +13,12 @@ flowchart TD
     B --> C["cached_file: selected tokenizer_config.json and special_tokens_map.json"]
     C --> D{"Valid JSON token metadata?"}
     D -->|no| E["Raise before tokenizer construction"]
-    D -->|yes| F["Convert token dictionaries; config declarations before legacy map defaults"]
-    F --> G["setdefault: explicit caller keys remain unchanged"]
+    D -->|yes| F{"added_tokens_decoder key in config or caller?"}
+    F -->|yes, even empty| M["Convert config tokens; ignore legacy map"]
+    F -->|no| L["Convert config and legacy map; map wins named tokens; merge lists"]
+    M --> G
+    L --> G
+    G["setdefault: explicit caller keys remain unchanged"]
     G --> H["Fresh prepared kwargs"]
     H --> I["Native AutoTokenizer or caller-selected packaged tokenizer"]
     I -->|native selection error| J["Existing trust-gated fallback with same prepared kwargs"]
@@ -29,7 +33,7 @@ flowchart TD
 | Retry, `Tokenicer._load_tokenizer` | Llama-only overrides applied after failure | Same prepared kwargs on first and fallback loads |
 | `tokenizer_special_token_overrides` | Local-root Llama empty-string repair | Selected Hub/local JSON metadata and retained Llama repair |
 | Explicit overrides | Retry could overwrite caller values | `setdefault` preserves keys, including `None` and empty lists |
-| Named AddedToken flags | Legacy map can replace config-declared flags | Config-declared dictionaries retain content and flags |
+| Named AddedToken flags | Config-first preparation loses historical legacy-map precedence | Without decoder metadata, map wins; with a decoder key, config wins |
 
 ## API and security boundaries
 
@@ -59,6 +63,15 @@ overrides. Invalid JSON objects, token contents, or flag types fail immediately;
 repairing the same local path is visible on the next call. Input assets remain
 byte-identical. Llama's existing empty BOS/EOS/UNK compatibility remains, while
 an explicit caller value, including `None`, takes precedence.
+
+The metadata branch follows Transformers 4.45.2's `_from_pretrained` semantics:
+the presence of `added_tokens_decoder` in config or caller kwargs (even `{}`)
+suppresses the legacy map. Otherwise named map values replace config values,
+and list tokens merge in config-then-map order. A `__type: AddedToken` marker
+alone does **not** select the modern branch. Unlike historical truthiness-based
+caller checks, preparation preserves every explicit caller key, including
+`None` and empty lists. Non-string class metadata is left to the chosen provider
+for contextual validation; preparation does not select or authorize classes.
 
 ## Reproduction and qualification
 
@@ -95,6 +108,22 @@ Torch 2.15.0: focused suite **21 passed**; full suite **127 passed, 28 skipped**
 in 22.38 seconds. The skips are 27 unavailable local tokenizer fixtures and one
 pre-existing serialized-tokenizer fixture that no longer differs in this
 Transformers version. Changed-path Ruff, compileall and `git diff --check` pass.
+
+Follow-up qualification: **34 focused tests passed**; the complete committed
+API family was **140 passed, 28 existing skips** in 23.30 seconds (excluding the
+separate SP conversion suite). Four contradictory-metadata regressions failed
+before the branch correction, with four modern-decoder controls passing.
+The real pinned `baichuan-inc/Baichuan2-7B-Chat` assets at
+`ea66ced17780ca3db39bc9f8aa601d8463db3da5` include conflicting EOS/UNK/PAD flags.
+The native Rust BPE consumer must preserve source embedded-EOS IDs
+`<s>hello</s><unk>` → `[1, 46955, 2, 0]`, including two backend serialization
+cycles. The three asset SHA256 values are checked in the regression. No source
+checkpoint Python is executed. The package-owned Baichuan consumer is qualified
+separately downstream; native Llama by itself can mask the wrong EOS metadata
+with existing special-token descriptors, so this regression clears those before
+consuming the prepared objects.
+Reinstating only the pre-fix helper makes that exact EOS assertion fail with
+`[1, 46955, 2801, 92319, 92574, 0]` (one intended failure in 2.44 seconds).
 
 Version `0.0.19` is an unreleased source candidate following merged
 [Tokenicer PR #65](https://github.com/ModelCloud/Tokenicer/pull/65). Install a

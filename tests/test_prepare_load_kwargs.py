@@ -151,24 +151,96 @@ def test_native_constructor_failure_repair_has_no_stale_metadata(legacy_bundle):
     assert wrapped.encode(TEXTS[2]) == reference(legacy_bundle).encode(TEXTS[2])
 
 
-@pytest.mark.parametrize("modern", [False, True])
-def test_config_addedtoken_flags_are_preserved_over_map(legacy_bundle, modern):
+@pytest.mark.parametrize("marker", [False, True])
+@pytest.mark.parametrize("decoder_owner", [None, "config", "caller"])
+def test_decoder_key_presence_selects_config_or_legacy_map_flags(legacy_bundle, marker, decoder_owner):
     config_path = legacy_bundle / "tokenizer_config.json"
     config = json.loads(config_path.read_text())
     config["bos_token"] = {"content": "<bos>", "single_word": True, "lstrip": False, "rstrip": False, "normalized": True}
-    if modern:
+    if marker:
         config["bos_token"]["__type"] = "AddedToken"
+    if decoder_owner == "config":
+        config["added_tokens_decoder"] = {}
     config_path.write_text(json.dumps(config))
     map_path = legacy_bundle / "special_tokens_map.json"
     metadata = json.loads(map_path.read_text())
     metadata["bos_token"] = {"content": "<bos>", "single_word": False, "normalized": False}
     map_path.write_text(json.dumps(metadata))
-    prepared = Tokenicer.prepare_load_kwargs(legacy_bundle)
-    assert prepared["bos_token"].single_word
-    assert prepared["bos_token"].normalized
+    caller = {"added_tokens_decoder": {}} if decoder_owner == "caller" else {}
+    prepared = Tokenicer.prepare_load_kwargs(legacy_bundle, **caller)
+    expected = decoder_owner is not None
+    assert prepared["bos_token"].single_word is expected
+    assert prepared["bos_token"].normalized is expected
     actual = GPT2Tokenizer.from_pretrained(str(legacy_bundle), **prepared)
-    assert actual.added_tokens_decoder[1].single_word
-    assert actual.added_tokens_decoder[1].normalized
+    assert actual.added_tokens_decoder[1].single_word is expected
+    assert actual.added_tokens_decoder[1].normalized is expected
+
+
+def test_legacy_map_string_overrides_config_object_but_not_caller_none(legacy_bundle):
+    config_path = legacy_bundle / "tokenizer_config.json"
+    metadata = json.loads(config_path.read_text())
+    metadata["bos_token"] = {"content": "<bos>", "single_word": True}
+    config_path.write_text(json.dumps(metadata))
+    (legacy_bundle / "special_tokens_map.json").write_text(json.dumps({"bos_token": "<eos>"}))
+    assert Tokenicer.prepare_load_kwargs(legacy_bundle)["bos_token"] == "<eos>"
+    assert Tokenicer.prepare_load_kwargs(legacy_bundle, bos_token=None)["bos_token"] is None
+
+
+def test_legacy_lists_merge_config_then_map_but_modern_decoder_ignores_map(legacy_bundle):
+    config_path = legacy_bundle / "tokenizer_config.json"
+    metadata = json.loads(config_path.read_text())
+    metadata["additional_special_tokens"] = [SPECIALS[0]]
+    config_path.write_text(json.dumps(metadata))
+    (legacy_bundle / "special_tokens_map.json").write_text(json.dumps({"additional_special_tokens": [SPECIALS[1]]}))
+    prepared = Tokenicer.prepare_load_kwargs(legacy_bundle)
+    assert [token.content for token in prepared["additional_special_tokens"]] == ["<left>", "<right>"]
+    prepared = Tokenicer.prepare_load_kwargs(legacy_bundle, added_tokens_decoder={})
+    assert [token.content for token in prepared["additional_special_tokens"]] == ["<left>"]
+
+
+def test_modern_decoder_presence_does_not_read_unused_legacy_map(legacy_bundle):
+    (legacy_bundle / "special_tokens_map.json").write_text("{invalid unused legacy map")
+    prepared = Tokenicer.prepare_load_kwargs(legacy_bundle, added_tokens_decoder={})
+    assert prepared["added_tokens_decoder"] == {}
+
+
+def test_real_baichuan2_7b_metadata_preserves_source_embedded_eos():
+    from pathlib import Path
+
+    from huggingface_hub import hf_hub_download
+    from tokenizers import Tokenizer
+    from transformers import LlamaTokenizer
+
+    repo = "baichuan-inc/Baichuan2-7B-Chat"
+    revision = "ea66ced17780ca3db39bc9f8aa601d8463db3da5"
+    expected_hashes = {
+        "tokenizer.model": "79452955be6b419a65984273a9f08af86042e1c2a75ee3ba989cbf620a133cc2",
+        "tokenizer_config.json": "49bb1dd184695eb2880d4204906a143a6b1e48e684c54603cf8d962bc39ee235",
+        "special_tokens_map.json": "20e75e78a486a1282a8ff92cbfaa7ff23578e058419c516d86867b5f75588b2c",
+    }
+    assets = {name: Path(hf_hub_download(repo, name, revision=revision)) for name in expected_hashes}
+    assert {name: hashlib.sha256(path.read_bytes()).hexdigest() for name, path in assets.items()} == expected_hashes
+    path = assets["tokenizer.model"].parent
+    assert "added_tokens_decoder" not in json.loads(assets["tokenizer_config.json"].read_text())
+    prepared = Tokenicer.prepare_load_kwargs(path)
+    if not hasattr(LlamaTokenizer, "backend_tokenizer"):
+        pytest.skip("Independent native Rust BPE consumer requires Transformers 5")
+    native = LlamaTokenizer.from_pretrained(
+        path, trust_remote_code=False, add_bos_token=False, add_eos_token=False,
+        legacy=False, add_prefix_space=False,
+    )
+    serialized = json.loads(native.backend_tokenizer.to_str())
+    # Existing native special descriptors would hide the metadata being tested.
+    serialized["added_tokens"] = []
+    backend = Tokenizer.from_str(json.dumps(serialized))
+    backend.add_special_tokens([prepared[key] for key in ("bos_token", "eos_token", "unk_token", "pad_token")])
+    for _ in range(2):
+        assert backend.encode("<s>hello</s><unk>", add_special_tokens=False).ids == [1, 46955, 2, 0]
+        backend = Tokenizer.from_str(backend.to_str())
+    for name in ("bos_token", "eos_token", "unk_token", "pad_token"):
+        assert not prepared[name].single_word
+        assert prepared[name].normalized
+    assert {name: hashlib.sha256(asset.read_bytes()).hexdigest() for name, asset in assets.items()} == expected_hashes
 
 
 def test_real_fallback_receives_same_normalized_metadata(legacy_bundle):

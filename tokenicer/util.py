@@ -172,21 +172,28 @@ def _special_token(value):
 
 def tokenizer_special_token_overrides(path, **kwargs) -> dict:
     tokenizer_config = _tokenizer_metadata(path, "tokenizer_config.json", **kwargs)
-    special_tokens_map = _tokenizer_metadata(path, "special_tokens_map.json", **kwargs)
+    has_decoder = "added_tokens_decoder" in kwargs or "added_tokens_decoder" in tokenizer_config
+    special_tokens_map = {} if has_decoder else _tokenizer_metadata(path, "special_tokens_map.json", **kwargs)
     overrides = {}
-    # Serialized config flags are authoritative; legacy maps fill missing declarations.
-    for metadata in (tokenizer_config, special_tokens_map):
+    # HF's legacy branch lets the special-token map override config declarations.
+    for metadata, legacy in ((tokenizer_config, False), (special_tokens_map, True)):
         for key, value in metadata.items():
-            if key in kwargs or key in overrides:
+            if key in kwargs:
                 continue
             if key in {"additional_special_tokens", "extra_special_tokens"}:
                 alias = "extra_special_tokens" if key == "additional_special_tokens" else "additional_special_tokens"
-                if alias in kwargs or alias in overrides:
+                if alias in kwargs or (alias in overrides and not legacy):
                     continue
                 if isinstance(value, list):
-                    overrides[key] = [_special_token(token) for token in value]
+                    tokens = [_special_token(token) for token in value]
+                    if legacy:
+                        existing = overrides.pop(alias, overrides.get(key, []))
+                        tokens = existing + [token for token in tokens if token not in existing]
+                    overrides[key] = tokens
             elif key.endswith("_token") and isinstance(value, dict):
                 overrides[key] = _special_token(value)
+            elif legacy and key.endswith("_token"):
+                overrides[key] = None if value is None else _special_token(value)
 
     tokenizer_class = tokenizer_config.get("tokenizer_class")
     if not isinstance(tokenizer_class, str) or tokenizer_class not in {"LlamaTokenizer", "LlamaTokenizerFast"}:
