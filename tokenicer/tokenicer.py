@@ -18,12 +18,13 @@ import logging
 import os
 import warnings
 from importlib import import_module
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from transformers import (
     AutoTokenizer,
     PreTrainedModel,
     PreTrainedTokenizerBase,
+    PreTrainedTokenizerFast,
 )
 from transformers.dynamic_module_utils import get_class_from_dynamic_module
 
@@ -61,6 +62,22 @@ _TOKENIZER_LOAD_EXCEPTIONS = (
 
 if StrictDataclassError is not None:
     _TOKENIZER_LOAD_EXCEPTIONS = _TOKENIZER_LOAD_EXCEPTIONS + (StrictDataclassError,)
+
+# Tokenizer classes that load `tokenizer.json` as-is, so they never need the check below.
+_SERIALIZED_TOKENIZER_CLASS_NAMES = frozenset({"TokenizersBackend", "PreTrainedTokenizerFast"})
+
+# Short sample texts used to compare a loaded tokenizer with the checkpoint's own
+# `tokenizer.json`: prose, whitespace, code, digits, unicode, CJK, emoji, one character and
+# an empty input.
+_SERIALIZED_TOKENIZER_PROBES = (
+    "Hello world, this is a test.",
+    "  leading and   repeated   whitespace ",
+    "def add(a, b):\n    return a + b\n",
+    "Numbers: 1234567 3.14159 2024-10-15",
+    "Unicode: café naïve 日本語 中文 🚀",
+    "a",
+    "",
+)
 
 _KNOWN_LOAD_WARNING_SUPPRESSIONS = [
     (
@@ -100,8 +117,17 @@ class Tokenicer():
         strict: bool = False,
         pad_tokens: Optional[List[Union[str, int]]] = None,
         model_config: Any = None,
+        prefer_serialized_tokenizer: bool = True,
         **kwargs,
     ):
+        """Load a tokenizer and auto-fix its pad token.
+
+        Args:
+            prefer_serialized_tokenizer (`bool`, *optional*, defaults to `True`):
+                Keep the tokenization of the checkpoint's own `tokenizer.json` when a
+                `*TokenizerFast` class resolves to a legacy class that tokenizes differently.
+                Set to `False` to keep the class `Transformers` resolves.
+        """
         if pretrained_model_name_or_path is None:
             raise ValueError("Tokenicer: `pretrained_model_name_or_path` cannot be `None`.")
 
@@ -116,7 +142,11 @@ class Tokenicer():
                 tokenizer = pretrained_model_name_or_path
                 path = config_path(tokenizer)
             elif isinstance(pretrained_model_name_or_path, str):
-                tokenizer = cls._load_tokenizer(pretrained_model_name_or_path, **kwargs)
+                tokenizer = cls._load_tokenizer(
+                    pretrained_model_name_or_path,
+                    prefer_serialized_tokenizer=prefer_serialized_tokenizer,
+                    **kwargs,
+                )
                 if isinstance(tokenizer, PreTrainedTokenizerBase):
                     path = pretrained_model_name_or_path
                 else:
@@ -146,7 +176,11 @@ class Tokenicer():
         return t
 
     @staticmethod
-    def _load_tokenizer(pretrained_model_name_or_path: str, **kwargs):
+    def _load_tokenizer(
+        pretrained_model_name_or_path: str,
+        prefer_serialized_tokenizer: bool = True,
+        **kwargs,
+    ):
         Tokenicer._install_tokenizer_compatibility_shims()
         load_kwargs = dict(kwargs)
         # Let Transformers repair affected Mistral-family pre-tokenizer regexes by
@@ -156,7 +190,12 @@ class Tokenicer():
         load_kwargs.setdefault("fix_mistral_regex", True)
         try:
             # Keep the normal Transformers path first so standard checkpoints behave unchanged.
-            return AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **load_kwargs)
+            return Tokenicer._resolve_serialized_tokenizer(
+                pretrained_model_name_or_path,
+                AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **load_kwargs),
+                load_kwargs,
+                prefer_serialized_tokenizer=prefer_serialized_tokenizer,
+            )
         except _TOKENIZER_LOAD_EXCEPTIONS:
             overrides = tokenizer_special_token_overrides(pretrained_model_name_or_path)
             retry_kwargs = dict(load_kwargs)
@@ -175,7 +214,12 @@ class Tokenicer():
                         tokenizer_cls_name,
                         pretrained_model_name_or_path,
                     )
-                    return tokenizer_cls.from_pretrained(pretrained_model_name_or_path, **retry_kwargs)
+                    return Tokenicer._resolve_serialized_tokenizer(
+                        pretrained_model_name_or_path,
+                        tokenizer_cls.from_pretrained(pretrained_model_name_or_path, **retry_kwargs),
+                        retry_kwargs,
+                        prefer_serialized_tokenizer=prefer_serialized_tokenizer,
+                    )
 
             custom_class_ref = custom_tokenizer_class_ref(pretrained_model_name_or_path)
             if custom_class_ref is not None:
@@ -188,7 +232,12 @@ class Tokenicer():
                     )
                     tokenizer_cls = get_class_from_dynamic_module(custom_class_ref, pretrained_model_name_or_path)
                     retry_kwargs.pop("trust_remote_code", None)
-                    return tokenizer_cls.from_pretrained(pretrained_model_name_or_path, trust_remote_code=True, **retry_kwargs)
+                    return Tokenicer._resolve_serialized_tokenizer(
+                        pretrained_model_name_or_path,
+                        tokenizer_cls.from_pretrained(pretrained_model_name_or_path, trust_remote_code=True, **retry_kwargs),
+                        retry_kwargs,
+                        prefer_serialized_tokenizer=prefer_serialized_tokenizer,
+                    )
                 except Exception:
                     logger.warning(
                         "Tokenicer: Failed custom tokenizer load via `%s` for `%s`, trying local tokenizer files.",
@@ -206,7 +255,166 @@ class Tokenicer():
                 "Tokenicer: Retrying tokenizer load with `trust_remote_code=True` for local custom tokenizer `%s`.",
                 pretrained_model_name_or_path,
             )
-            return AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **retry_kwargs)
+            return Tokenicer._resolve_serialized_tokenizer(
+                pretrained_model_name_or_path,
+                AutoTokenizer.from_pretrained(pretrained_model_name_or_path, **retry_kwargs),
+                retry_kwargs,
+                prefer_serialized_tokenizer=prefer_serialized_tokenizer,
+            )
+
+    @classmethod
+    def _resolve_serialized_tokenizer(
+        cls,
+        pretrained_model_name_or_path: str,
+        tokenizer,
+        load_kwargs: dict,
+        prefer_serialized_tokenizer: bool = True,
+    ):
+        # A checkpoint that declares a `*TokenizerFast` class in `tokenizer_config.json` asks
+        # for the tokenization stored in its own `tokenizer.json`. Transformers aliases some of
+        # those names to legacy classes that rebuild the backend instead of loading that file
+        # (`LlamaTokenizer` hardcodes a sentencepiece `Metaspace` pre-tokenizer, which drops the
+        # leading whitespace of every word for Llama-3-style checkpoints). Such a tokenizer
+        # still reports `is_fast=True` and silently inflates metrics such as perplexity, so
+        # compare both and keep the serialized one when they disagree.
+
+        # The caller opted out, or the load did not produce a usable tokenizer.
+        if not prefer_serialized_tokenizer or not isinstance(tokenizer, PreTrainedTokenizerBase):
+            return tokenizer
+
+        tokenizer_cls = type(tokenizer)
+        # Remote/custom tokenizer code owns its behavior.
+        if not (getattr(tokenizer_cls, "__module__", "") or "").startswith("transformers."):
+            return tokenizer
+
+        # These classes already load `tokenizer.json` as-is.
+        if tokenizer_cls.__name__ in _SERIALIZED_TOKENIZER_CLASS_NAMES:
+            return tokenizer
+
+        # Only checkpoints that ask for a `*TokenizerFast` class are affected; checkpoints that
+        # declare a legacy class keep the class Transformers resolves.
+        declared_cls_name = cls._declared_tokenizer_class(pretrained_model_name_or_path)
+        if declared_cls_name is None or not declared_cls_name.endswith("Fast"):
+            return tokenizer
+
+        serialized_file = cls._serialized_tokenizer_file(pretrained_model_name_or_path, load_kwargs)
+        if serialized_file is None:
+            return tokenizer
+
+        loaded_ids = cls._tokenization_probe_ids(tokenizer)
+        if loaded_ids is None:
+            return tokenizer
+
+        # Nothing to correct when the class tokenizer already matches the file.
+        serialized_ids = cls._serialized_file_probe_ids(serialized_file)
+        if serialized_ids is None or serialized_ids == loaded_ids:
+            return tokenizer
+
+        # Rebuild through the normal load path so that intentional normalizations
+        # (`fix_mistral_regex`, special tokens, ...) stay applied.
+        try:
+            serialized_tokenizer = PreTrainedTokenizerFast.from_pretrained(
+                pretrained_model_name_or_path,
+                **load_kwargs,
+            )
+        except Exception:
+            return tokenizer
+
+        if cls._tokenization_probe_ids(serialized_tokenizer) == loaded_ids:
+            # The rebuilt tokenizer behaves like the class one after all: keep the class one.
+            return tokenizer
+
+        logger.warning(
+            "Tokenicer: `%s` tokenizes `%s` differently from the serialized `tokenizer.json` "
+            "requested by `%s`; loading the serialized tokenizer instead.",
+            tokenizer_cls.__name__,
+            pretrained_model_name_or_path,
+            declared_cls_name,
+        )
+        return serialized_tokenizer
+
+    @staticmethod
+    def _declared_tokenizer_class(pretrained_model_name_or_path) -> Optional[str]:
+        # The tokenizer class the checkpoint asks for in `tokenizer_config.json`, or `None`.
+        if not isinstance(pretrained_model_name_or_path, str):
+            return None
+
+        if os.path.isdir(pretrained_model_name_or_path):
+            return tokenizer_class_name(pretrained_model_name_or_path)
+
+        try:
+            from transformers.models.auto.tokenization_auto import get_tokenizer_config
+
+            tokenizer_config = get_tokenizer_config(pretrained_model_name_or_path)
+        except Exception:
+            return None
+
+        if not isinstance(tokenizer_config, dict):
+            return None
+
+        tokenizer_cls_name = tokenizer_config.get("tokenizer_class")
+        if isinstance(tokenizer_cls_name, str) and tokenizer_cls_name:
+            return tokenizer_cls_name
+        return None
+
+    @staticmethod
+    def _serialized_tokenizer_file(pretrained_model_name_or_path, load_kwargs: dict) -> Optional[str]:
+        # Path of the checkpoint's `tokenizer.json`, or `None` when the checkpoint has none.
+        if not isinstance(pretrained_model_name_or_path, str):
+            return None
+
+        if os.path.isdir(pretrained_model_name_or_path):
+            serialized_file = os.path.join(pretrained_model_name_or_path, "tokenizer.json")
+            return serialized_file if os.path.exists(serialized_file) else None
+
+        try:
+            from transformers.utils import cached_file
+
+            # Forward the same file-selection kwargs the tokenizer was loaded with.
+            probe_kwargs = {
+                key: load_kwargs[key]
+                for key in ("subfolder", "revision", "token", "cache_dir", "local_files_only")
+                if key in load_kwargs
+            }
+            return cached_file(pretrained_model_name_or_path,
+                               "tokenizer.json",
+                               **probe_kwargs)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _tokenization_probe_ids(tokenizer) -> Optional[Tuple[Tuple[int, ...], ...]]:
+        # Token ids of the sample texts for a loaded tokenizer, used to compare tokenizers.
+        # `add_special_tokens=False` keeps bos/eos insertion out of the comparison.
+        try:
+            backend_tokenizer = tokenizer.backend_tokenizer
+        except Exception:
+            return None
+
+        if backend_tokenizer is None:
+            return None
+
+        try:
+            return tuple(
+                tuple(backend_tokenizer.encode(text, add_special_tokens=False).ids)
+                for text in _SERIALIZED_TOKENIZER_PROBES
+            )
+        except Exception:
+            return None
+
+    @staticmethod
+    def _serialized_file_probe_ids(serialized_file: str) -> Optional[Tuple[Tuple[int, ...], ...]]:
+        # Same sample encoding as `_tokenization_probe_ids()`, but straight from the file.
+        try:
+            from tokenizers import Tokenizer as BackendTokenizer
+
+            backend_tokenizer = BackendTokenizer.from_file(serialized_file)
+            return tuple(
+                tuple(backend_tokenizer.encode(text, add_special_tokens=False).ids)
+                for text in _SERIALIZED_TOKENIZER_PROBES
+            )
+        except Exception:
+            return None
 
     @staticmethod
     def _warning_filters(pretrained_model_name_or_path):

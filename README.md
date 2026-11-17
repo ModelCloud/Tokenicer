@@ -15,6 +15,7 @@
 </p>
 
 ## News
+* 10/15/2026 [0.0.16](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.16): Keep the tokenization of the checkpoint's serialized `tokenizer.json` when a `*TokenizerFast` class resolves to a legacy tokenizer that rebuilds its own backend. Fixes `DeepSeek-R1-Distill-Llama-*` and other Llama-3-style checkpoints loaded from a local directory, where every word lost its leading whitespace.
 * 07/22/2026 [0.0.14](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.14): Auto-fix affected Mistral-family tokenizer regexes, including Laguna S 2.1.
 * 03/03/2026 [0.0.7](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.7): Fix Qwen 3.5 MoE compat.
 * 02/09/2026 [0.0.6](https://github.com/ModelCloud/Tokenicer/releases/tag/v0.0.6): Fix ChatGLM compat. 
@@ -28,6 +29,7 @@
 ## Features:
 
 * Compatible with all HF `Transformers` recognized tokenizers
+* Loads the tokenizer the checkpoint asks for: a checkpoint that declares a `*TokenizerFast` class keeps the tokenization of its serialized `tokenizer.json`, even when `Transformers` aliases that name to a legacy class that rebuilds its own backend (`LlamaTokenizer` hardcodes a sentencepiece `Metaspace` pre-tokenizer, which drops the leading whitespace of every word for Llama-3-style checkpoints). Pass `prefer_serialized_tokenizer=False` to keep the class `Transformers` resolves.
 * Auto-fix `models` not setting `padding_token`
 * Auto-Fix `models` released with wrong `padding_token`: many `models` incorrectly use `eos_token` as `pad_token` which leads to subtle and hidden errors in post-training and inference when `batching` is used which is almost always.
 * Zero external dependency outside of `Transformers`
@@ -81,6 +83,19 @@ print(f"pad_token: `{tokenizer.pad_token}`")
 
 ```py
 tokenizer = Tokenicer.load(tokenizer, model_config=model.config)
+```
+
+* Tokenizer classes are validated against the checkpoint's serialized `tokenizer.json`.
+  Checkpoints that declare a `*TokenizerFast` class never fall back to a legacy class that
+  tokenizes differently:
+
+```py
+tokenizer = Tokenicer.load('deepseek-ai/DeepSeek-R1-Distill-Llama-8B')
+print(tokenizer('Hello world, this is a test.')['input_ids'])
+# [9906, 1917, 11, 420, 374, 264, 1296, 13]
+
+# Opt out and keep whatever class `Transformers` resolves for the checkpoint:
+tokenizer = Tokenicer.load('deepseek-ai/DeepSeek-R1-Distill-Llama-8B', prefer_serialized_tokenizer=False)
 ```
 
 ## Citation
