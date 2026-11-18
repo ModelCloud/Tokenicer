@@ -41,6 +41,7 @@ except Exception:  # pragma: no cover - optional dependency path
     except Exception:
         StrictDataclassError = None
 
+from .equivalence import transformers_class_name
 from .const import DEFAULT_PAD_TOKENS, MODEL_PAD_TOKEN_MAP
 from .ernie_vl import MODEL_TYPES as ERNIE_VL_MODEL_TYPES
 from .ernie_vl import ernie_vl_model_config, load_ernie_vl, normalize_ernie_vl
@@ -351,12 +352,14 @@ class Tokenicer():
             return tokenizer
 
         tokenizer_cls = type(tokenizer)
-        # Remote/custom tokenizer code owns its behavior.
-        if not (getattr(tokenizer_cls, "__module__", "") or "").startswith("transformers."):
+        # Remote/custom tokenizer code owns its behavior. Registered verbatim copies of
+        # Transformers classes behave exactly like the library class.
+        library_name = transformers_class_name(tokenizer_cls)
+        if library_name is None:
             return tokenizer
 
         # These classes already load `tokenizer.json` as-is.
-        if tokenizer_cls.__name__ in _SERIALIZED_TOKENIZER_CLASS_NAMES:
+        if library_name in _SERIALIZED_TOKENIZER_CLASS_NAMES:
             return tokenizer
 
         # Only checkpoints that ask for a `*TokenizerFast` class are affected; checkpoints that

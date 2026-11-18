@@ -31,6 +31,7 @@ def _configure_hf_cache():
 
 _configure_hf_cache()
 
-from .tokenicer import Tokenicer
+from .equivalence import register_transformers_equivalent  # noqa: E402 - after HF cache setup
+from .tokenicer import Tokenicer  # noqa: E402 - after HF cache setup
 
-__all__ = ["Tokenicer"]
+__all__ = ["Tokenicer", "register_transformers_equivalent"]

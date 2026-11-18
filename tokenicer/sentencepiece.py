@@ -7,8 +7,7 @@ from pathlib import Path
 
 from tokenizers import Tokenizer, normalizers
 from tokenizers.models import BPE
-from transformers import LlamaTokenizer
-
+from .equivalence import transformers_class_name
 from .serialized import normalize_legacy_metaspace
 from .util import _tokenizer_metadata
 
@@ -36,7 +35,9 @@ def normalize_sentencepiece(
     tokenizer, path, *, historical_conversion=False, prefer_serialized_tokenizer=True, resolve_remote=False, **kwargs,
 ):
     """Preserve native Llama's SP conversion without changing its provider or token IDs."""
-    if type(tokenizer) is not LlamaTokenizer or _PIPELINE_OVERRIDES.intersection(kwargs):
+    # Exact class identity: Transformers' LlamaTokenizer or a registered verbatim copy of it.
+    # Subclasses may change the pipeline, so they are never normalized.
+    if transformers_class_name(type(tokenizer)) != "LlamaTokenizer" or _PIPELINE_OVERRIDES.intersection(kwargs):
         return
     backend = getattr(tokenizer, "backend_tokenizer", None)
     if backend is None:
